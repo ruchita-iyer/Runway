@@ -144,7 +144,6 @@ export function CategoryPickerGrid({
         )}
       </motion.div>
       </div>
-      <p className="mt-3 text-center text-[12px] text-slate">Swipe to browse, swipe up to choose</p>
     </div>
   );
 }

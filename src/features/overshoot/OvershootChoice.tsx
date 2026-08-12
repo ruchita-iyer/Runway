@@ -5,7 +5,7 @@ import { AppShell } from "../../layout/AppShell";
 import { Icon, ArrowLeft, ArrowDownUp, TrendingUp } from "../../components/ui/IconIndex";
 import { Button } from "../../components/ui/Button";
 import { useTripData } from "../../data/useTripData";
-import { effectiveBudget, totalSpent } from "../../data/calculations";
+import { effectiveBudget, totalSpent, tripCurrencySymbol } from "../../data/calculations";
 import { formatCurrency } from "../../lib/format";
 
 export function OvershootChoice() {
@@ -19,6 +19,7 @@ export function OvershootChoice() {
     return null;
   }
 
+  const symbol = tripCurrencySymbol(activeTrip);
   const over = totalSpent(activeTrip) - effectiveBudget(activeTrip);
 
   const chooseTighten = () => {
@@ -50,7 +51,7 @@ export function OvershootChoice() {
           className="flex h-40 w-40 flex-col items-center justify-center rounded-full bg-pace-berry text-white shadow-soft"
         >
           <span className="text-[13px] font-medium opacity-90">Over budget</span>
-          <span className="tabular font-display text-[26px] font-bold">by {formatCurrency(over)}</span>
+          <span className="tabular font-display text-[26px] font-bold">by {formatCurrency(over, { symbol })}</span>
         </motion.div>
         <p className="max-w-[280px] text-[14px] leading-relaxed text-slate">
           This happens on real trips. Here's how you want to handle the rest of it.
@@ -78,7 +79,7 @@ export function OvershootChoice() {
             </span>
             <span>
               <p className="text-[15px] font-medium text-ink">Raise the budget</p>
-              <p className="text-[13px] text-slate">Add funds and see today update</p>
+              <p className="text-[13px] text-slate">Add funds and update your trip budget</p>
             </span>
           </button>
           <motion.div
@@ -87,7 +88,7 @@ export function OvershootChoice() {
             className="overflow-hidden"
           >
             <div className="flex items-center gap-2 pt-4">
-              <span className="tabular text-[18px] font-semibold text-slate">$</span>
+              <span className="tabular text-[18px] font-semibold text-slate">{symbol}</span>
               <input
                 value={extra}
                 onChange={(e) => setExtra(e.target.value)}

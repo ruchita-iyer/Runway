@@ -14,12 +14,12 @@ interface ChatMessage {
 }
 
 const SUGGESTIONS = [
-  "Am I on pace?",
+  "How much do I have left?",
   "Where's my money going?",
-  "What if I spend $50 more today?",
+  "What if I spend $50 more?",
   "How many days are left?",
   "How much have I spent so far?",
-  "What's my daily budget?",
+  "What's my total budget?",
   "Am I likely to finish under budget?",
   "What's my current streak?",
 ];
@@ -37,8 +37,8 @@ export function AdvisorChat() {
       id: "intro",
       role: "bot",
       text: activeTrip
-        ? `Hey! I'm your advisor for ${activeTrip.name}. Ask me about your pace, budget, or category spend.`
-        : "Start an active trip and I'll be able to answer questions about its budget and pace.",
+        ? `Hey! I'm your advisor for ${activeTrip.name}. Ask me about your budget or category spend.`
+        : "Start an active trip and I'll be able to answer questions about its budget.",
     },
   ]);
   const [draft, setDraft] = useState("");

@@ -1,6 +1,11 @@
 export type PaceStatus = "onPace" | "tight" | "over";
-export type TripStatus = "active" | "complete";
-export type ScreenState = "empty" | "active" | "complete";
+export type TripStatus = "upcoming" | "active" | "complete";
+export type ScreenState = "empty" | "upcoming" | "active" | "complete";
+
+export interface Currency {
+  code: string;
+  symbol: string;
+}
 
 export interface Category {
   id: string;
@@ -26,13 +31,14 @@ export interface Trip {
   totalBudget: number;
   durationDays: number;
   startDate: string; // ISO date, yyyy-mm-dd
+  currency: Currency;
   categories: Category[];
   expenses: Expense[];
   status: TripStatus;
   overshootAcknowledged: boolean;
   overshootRaisedBudget?: number;
   note?: string;
-  /** Overrides "today" for this trip's day/budget math, without touching startDate. Used by day-advance controls. */
+  /** Overrides "today" for this trip's day math, without touching startDate. Used by day-advance controls. */
   simulatedTodayISO?: string;
 }
 

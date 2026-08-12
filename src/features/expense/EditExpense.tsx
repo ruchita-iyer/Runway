@@ -6,7 +6,7 @@ import { Button } from "../../components/ui/Button";
 import { CategoryPickerGrid } from "../../components/ui/CategoryPickerGrid";
 import { Icon, ArrowLeft, Calendar, ChevronRight, categoryIcon, inferCategoryIcon } from "../../components/ui/IconIndex";
 import { useTripData } from "../../data/useTripData";
-import { tripEndDateISO } from "../../data/calculations";
+import { tripCurrencySymbol, tripEndDateISO } from "../../data/calculations";
 import { categoryColor, categoryGradient } from "../../theme/tokens";
 import { dayNumberFor, toISODate, formatShortDate } from "../../lib/date";
 
@@ -36,6 +36,7 @@ export function EditExpense() {
     return null;
   }
 
+  const symbol = tripCurrencySymbol(trip);
   const selectedCategory = trip.categories.find((c) => c.id === categoryId) ?? null;
 
   const save = () => {
@@ -91,9 +92,9 @@ export function EditExpense() {
 
       <div className="flex flex-col gap-5 px-5 pt-8">
         <div>
-          <p className="mb-2 text-[12px] font-medium uppercase tracking-wide text-slate">Amount (USD)</p>
+          <p className="mb-2 text-[12px] font-medium uppercase tracking-wide text-slate">Amount ({trip.currency.code})</p>
           <div className="flex items-center gap-2 rounded-2xl bg-surface px-4 py-4 shadow-soft">
-            <span className="tabular font-display text-[24px] font-semibold text-slate">$</span>
+            <span className="tabular font-display text-[24px] font-semibold text-slate">{symbol}</span>
             <input
               value={amount}
               onChange={(e) => setAmount(e.target.value)}

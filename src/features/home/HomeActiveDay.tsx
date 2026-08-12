@@ -5,7 +5,6 @@ import { AppShell } from "../../layout/AppShell";
 import { BottomNav } from "../../layout/BottomNav";
 import { LatitudeDial } from "../../components/dial/LatitudeDial";
 import type { DialMode } from "../../components/dial/LatitudeDial";
-import { StatTile } from "../../components/ui/StatTile";
 import { PacePulseDot } from "../../components/ui/PacePulseDot";
 import { StreakChip } from "../../components/ui/StreakChip";
 import { MilestoneToast } from "../../components/ui/MilestoneToast";
@@ -13,25 +12,22 @@ import { SwipeableRow } from "../../components/ui/SwipeableRow";
 import { UndoBar } from "../expense/UndoBar";
 import { Celebration } from "../expense/Celebration";
 import { DayManageSheet } from "./DayManageSheet";
-import { DayOverspendNotice } from "./DayOverspendNotice";
 import { HamburgerMenu } from "./HamburgerMenu";
 import { Icon, ChevronDown, Menu, categoryIcon } from "../../components/ui/IconIndex";
 import { useTripData } from "../../data/useTripData";
 import {
+  budgetFraction,
+  budgetStatus,
   currentDayNumber,
-  dailyAllowanceBase,
-  daysLeft,
-  dialFraction,
-  dollarsLeftToday,
   effectiveBudget,
   isOvershoot,
   loggingStreak,
   milestoneForDay,
-  paceStatus,
-  spentOnDay,
   totalSpent,
+  tripCurrencySymbol,
 } from "../../data/calculations";
 import { formatCurrency } from "../../lib/format";
+import { formatShortDate } from "../../lib/date";
 import { timeGreeting } from "../../lib/greeting";
 import { categoryColor, categoryGradient, paceColorVar } from "../../theme/tokens";
 
@@ -48,8 +44,10 @@ export function HomeActiveDay() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [displayFraction, setDisplayFraction] = useState(() => (activeTrip ? dialFraction(activeTrip) : 0));
-  const [displayLeft, setDisplayLeft] = useState(() => (activeTrip ? dollarsLeftToday(activeTrip) : 0));
+  const [displayFraction, setDisplayFraction] = useState(() => (activeTrip ? budgetFraction(activeTrip) : 0));
+  const [displayLeft, setDisplayLeft] = useState(() =>
+    activeTrip ? effectiveBudget(activeTrip) - totalSpent(activeTrip) : 0,
+  );
   const [dialMode, setDialMode] = useState<DialMode>("idle");
   const [dropTarget, setDropTarget] = useState<number | null>(null);
   const [dropTargetLeft, setDropTargetLeft] = useState<number | null>(null);
@@ -62,27 +60,28 @@ export function HomeActiveDay() {
   const day = activeTrip ? currentDayNumber(activeTrip) : 0;
   const dayRef = useRef(day);
 
-  // Re-sync the dial whenever the trip's current day changes while this screen stays mounted —
-  // e.g. the user manually jumps to a new day via the day-manage sheet. Without this, the ring
-  // and "left today" figure stay frozen on the previous day's numbers instead of resetting.
+  // Track day changes purely to surface trip-progress milestones (25/50/75/100%) — the dial
+  // itself no longer resets per day since it shows whole-trip budget/spent/left.
   useEffect(() => {
     if (!activeTrip || dayRef.current === day) return;
-    const prevMilestone = activeTrip ? milestoneForDay(dayRef.current, activeTrip.durationDays) : null;
-    const nextMilestone = activeTrip ? milestoneForDay(day, activeTrip.durationDays) : null;
+    const prevMilestone = milestoneForDay(dayRef.current, activeTrip.durationDays);
+    const nextMilestone = milestoneForDay(day, activeTrip.durationDays);
     if (nextMilestone !== null && nextMilestone !== prevMilestone) setMilestone(nextMilestone);
     dayRef.current = day;
-    setDisplayFraction(dialFraction(activeTrip));
-    setDisplayLeft(dollarsLeftToday(activeTrip));
-    setDialMode("sunrise");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [day]);
 
+  // A real calendar-day rollover no longer changes the dial (whole-trip budget/spent don't
+  // depend on which day it is), so just clear the flag rather than replaying an animation.
+  useEffect(() => {
+    if (dayJustRolledOver) acknowledgeDayRollover();
+  }, [dayJustRolledOver, acknowledgeDayRollover]);
+
   // Safety net: whenever the trip's data changes for a reason none of the more specific
   // triggers above cover (e.g. editing/deleting an expense from the recent-activity list
-  // via SwipeableRow, which doesn't change `day` or set `justLoggedId`), resync the dial to
-  // the live-computed numbers once it's idle. Without this, displayFraction/displayLeft can
-  // go stale and keep showing a previous day's or previous edit's figures — see CLAUDE.md's
-  // note on HomeActiveDay's local dial state.
+  // via SwipeableRow, which doesn't set justLoggedId), resync the dial to the live-computed
+  // numbers once it's idle. Without this, displayFraction/displayLeft can go stale and keep
+  // showing a previous edit's figures — see CLAUDE.md's note on HomeActiveDay's local dial state.
   const mountedRef = useRef(false);
   useEffect(() => {
     if (!mountedRef.current) {
@@ -90,8 +89,8 @@ export function HomeActiveDay() {
       return;
     }
     if (!activeTrip || dialMode !== "idle") return;
-    setDisplayFraction(dialFraction(activeTrip));
-    setDisplayLeft(dollarsLeftToday(activeTrip));
+    setDisplayFraction(budgetFraction(activeTrip));
+    setDisplayLeft(effectiveBudget(activeTrip) - totalSpent(activeTrip));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTrip, dialMode]);
 
@@ -99,19 +98,12 @@ export function HomeActiveDay() {
     if (!activeTrip) return;
     const justLoggedId = (location.state as { justLoggedId?: string } | null)?.justLoggedId;
 
-    if (dayJustRolledOver) {
-      setDisplayFraction(dialFraction(activeTrip));
-      setDisplayLeft(dollarsLeftToday(activeTrip));
-      setDialMode("sunrise");
-      return;
-    }
-
     if (justLoggedId) {
       const prevTrip = { ...activeTrip, expenses: activeTrip.expenses.filter((e) => e.id !== justLoggedId) };
-      setDisplayFraction(dialFraction(prevTrip));
-      setDisplayLeft(dollarsLeftToday(prevTrip));
-      setDropTarget(dialFraction(activeTrip));
-      setDropTargetLeft(dollarsLeftToday(activeTrip));
+      setDisplayFraction(budgetFraction(prevTrip));
+      setDisplayLeft(effectiveBudget(prevTrip) - totalSpent(prevTrip));
+      setDropTarget(budgetFraction(activeTrip));
+      setDropTargetLeft(effectiveBudget(activeTrip) - totalSpent(activeTrip));
       setDropDirection("in");
       setDialMode("dropping");
       setCelebrate(true);
@@ -123,9 +115,9 @@ export function HomeActiveDay() {
 
   if (!activeTrip) return null;
 
-  const status = paceStatus(activeTrip);
-  const recent = [...activeTrip.expenses].sort((a, b) => b.loggedAt - a.loggedAt).slice(0, 5);
-  const hasMore = activeTrip.expenses.length > 5;
+  const symbol = tripCurrencySymbol(activeTrip);
+  const status = budgetStatus(activeTrip);
+  const recent = [...activeTrip.expenses].sort((a, b) => b.loggedAt - a.loggedAt).slice(0, 3);
   const overshoot = isOvershoot(activeTrip);
   const greeting = timeGreeting();
 
@@ -137,11 +129,6 @@ export function HomeActiveDay() {
     setDropTargetLeft(null);
   };
 
-  const handleSunriseComplete = () => {
-    setDialMode("idle");
-    acknowledgeDayRollover();
-  };
-
   const lastExpense = activeTrip.expenses.find((e) => e.id === lastLoggedExpenseId) ?? null;
   const lastExpenseCategory = lastExpense
     ? activeTrip.categories.find((c) => c.id === lastExpense.categoryId)?.name ?? "Other"
@@ -150,8 +137,8 @@ export function HomeActiveDay() {
   const handleUndo = () => {
     if (!lastExpense || dialMode !== "idle") return;
     const prevTrip = { ...activeTrip, expenses: activeTrip.expenses.filter((e) => e.id !== lastExpense.id) };
-    const prevFraction = dialFraction(prevTrip);
-    const prevLeft = dollarsLeftToday(prevTrip);
+    const prevFraction = budgetFraction(prevTrip);
+    const prevLeft = effectiveBudget(prevTrip) - totalSpent(prevTrip);
     setDropTarget(prevFraction);
     setDropTargetLeft(prevLeft);
     setDropDirection("out");
@@ -176,7 +163,7 @@ export function HomeActiveDay() {
           <div>
             <p className="flex items-center gap-1.5 text-[13px] text-slate">
               <Icon icon={greeting.icon} size={15} />
-              {greeting.text}, Alex
+              {greeting.text}
             </p>
             <button
               onClick={() => setDaySheetOpen(true)}
@@ -196,8 +183,6 @@ export function HomeActiveDay() {
       </div>
 
       <MilestoneToast milestone={milestone} onDismiss={() => setMilestone(null)} />
-
-      <DayOverspendNotice trip={activeTrip} />
 
       {day >= activeTrip.durationDays && (
         <div className="mx-5 mt-4 rounded-2xl bg-accent-violet/10 px-4 py-3">
@@ -226,14 +211,13 @@ export function HomeActiveDay() {
         <div className="relative">
           <Celebration show={celebrate} />
           <LatitudeDial
-          fraction={displayFraction}
+          fraction={1 - displayFraction}
           status={status}
           mode={dialMode}
           dropDirection={dropDirection}
-          dropTargetFraction={dropTarget ?? undefined}
+          dropTargetFraction={dropTarget !== null ? 1 - dropTarget : undefined}
           showOvershootRing={overshoot}
           onDropComplete={handleDropComplete}
-          onSunriseComplete={handleSunriseComplete}
           centerLabel={
             <>
               <AnimatePresence mode="popLayout">
@@ -242,12 +226,14 @@ export function HomeActiveDay() {
                   initial={{ opacity: 0, y: 8, scale: 0.92 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-                  className="tabular font-display text-[34px] font-semibold text-ink"
+                  className="tabular font-display text-[34px] font-semibold"
+                  style={{ color: displayLeft < 0 ? "var(--pace-berry)" : "var(--pace-teal)" }}
                 >
-                  {formatCurrency(displayLeft)}
+                  {displayLeft < 0 ? "-" : "+"}
+                  {formatCurrency(Math.abs(displayLeft), { symbol })}
                 </motion.span>
               </AnimatePresence>
-              <span className="mt-1 text-[13px] text-slate">left today</span>
+              <span className="mt-1 text-[13px] text-slate">left</span>
             </>
           }
           />
@@ -261,11 +247,11 @@ export function HomeActiveDay() {
         >
           <div className="flex items-center justify-between text-[12px] text-slate">
             <span className="tabular">
-              {formatCurrency(totalSpent(activeTrip))} of {formatCurrency(effectiveBudget(activeTrip))} spent
+              {formatCurrency(totalSpent(activeTrip), { symbol })} of {formatCurrency(effectiveBudget(activeTrip), { symbol })} spent
             </span>
-            <span className="tabular">{formatCurrency(dailyAllowanceBase(activeTrip))}/day</span>
+            <span className="tabular">{Math.round(budgetFraction(activeTrip) * 100)}% used</span>
           </div>
-          <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-pill bg-hairline/50">
+          <div className="mt-2 h-3.5 w-full overflow-hidden rounded-pill bg-hairline/50">
             <div
               className="h-full rounded-pill transition-all"
               style={{
@@ -274,26 +260,6 @@ export function HomeActiveDay() {
               }}
             />
           </div>
-        </motion.div>
-
-        <motion.div
-          initial="hidden"
-          animate="show"
-          variants={{ show: { transition: { staggerChildren: 0.06, delayChildren: 0.16 } } }}
-          className="grid w-full grid-cols-2 gap-3"
-        >
-          {[
-            { label: "Spent today", value: formatCurrency(spentOnDay(activeTrip, day)), tint: "var(--pace-teal)" },
-            { label: "Days left", value: String(daysLeft(activeTrip)), tint: "var(--accent-violet)" },
-          ].map((tile) => (
-            <motion.div
-              key={tile.label}
-              variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
-              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <StatTile label={tile.label} value={tile.value} tint={tile.tint} />
-            </motion.div>
-          ))}
         </motion.div>
       </div>
 
@@ -307,7 +273,7 @@ export function HomeActiveDay() {
         <div className="flex max-h-[260px] flex-col gap-3 overflow-y-auto px-0.5 pb-1 pr-1.5">
           {recent.length === 0 && (
             <p className="rounded-2xl bg-surface px-4 py-6 text-center text-[13px] text-slate shadow-soft">
-              Nothing logged yet today.
+              Nothing logged yet.
             </p>
           )}
           {recent.map((exp) => {
@@ -331,24 +297,18 @@ export function HomeActiveDay() {
                   </span>
                   <div className="flex-1">
                     <p className="text-[14px] font-medium text-ink">{cat?.name ?? "Other"}</p>
-                    <p className="text-[12px] text-slate">{exp.note || "No note"}</p>
+                    <p className="text-[12px] text-slate">
+                      {exp.note ? exp.note : "No note"} · {formatShortDate(new Date(exp.loggedAt).toISOString().slice(0, 10))}
+                    </p>
                   </div>
                   <span className="tabular text-[15px] font-medium text-ink">
-                    -{formatCurrency(exp.amount)}
+                    -{formatCurrency(exp.amount, { symbol })}
                   </span>
                 </button>
               </SwipeableRow>
             );
           })}
         </div>
-        {hasMore && (
-          <button
-            onClick={() => navigate("/search")}
-            className="mt-2 w-full rounded-xl border border-dashed border-hairline py-2.5 text-[13px] font-medium text-action-primary"
-          >
-            See all transactions
-          </button>
-        )}
       </div>
 
       <div className="pointer-events-none absolute inset-x-0 bottom-[84px] z-20 px-5 py-3">

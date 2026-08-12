@@ -5,7 +5,16 @@ import { BottomNav } from "../../layout/BottomNav";
 import { Icon, Sun, Moon, ChevronRight, Flame, Trophy, Award, Target, Lock } from "../../components/ui/IconIndex";
 import { useTripData } from "../../data/useTripData";
 import { formatCurrency } from "../../lib/format";
-import { isOvershoot, longestLoggingStreak, loggingStreak, onPaceStreak, totalSpent } from "../../data/calculations";
+import { formatShortDate } from "../../lib/date";
+import {
+  effectiveBudget,
+  isOvershoot,
+  longestLoggingStreak,
+  loggingStreak,
+  totalSpent,
+  tripCurrencySymbol,
+  tripEndDateISO,
+} from "../../data/calculations";
 
 const XP_PER_LEVEL = 200;
 
@@ -20,7 +29,6 @@ export function AccountScreen() {
   const totalExpenses = state.trips.reduce((sum, t) => sum + t.expenses.length, 0);
   const bestStreak = state.trips.reduce((max, t) => Math.max(max, longestLoggingStreak(t)), 0);
   const currentStreak = currentActiveTrip ? loggingStreak(currentActiveTrip) : 0;
-  const currentPaceStreak = currentActiveTrip ? onPaceStreak(currentActiveTrip) : 0;
   const neverOvershot = state.trips.length > 0 && state.trips.every((t) => !isOvershoot(t));
 
   const xp = totalExpenses * 10 + bestStreak * 15;
@@ -40,11 +48,6 @@ export function AccountScreen() {
       progress: currentActiveTrip ? Math.min(currentActiveTrip.expenses.length, 5) / 5 : 0,
       detail: currentActiveTrip ? `${Math.min(currentActiveTrip.expenses.length, 5)}/5` : "0/5",
     },
-    {
-      label: "Stay on pace 3 days in a row",
-      progress: Math.min(currentPaceStreak, 3) / 3,
-      detail: `${Math.min(currentPaceStreak, 3)}/3`,
-    },
   ];
 
   return (
@@ -53,7 +56,29 @@ export function AccountScreen() {
         <h1 className="font-display text-[20px] font-bold text-ink">Account</h1>
       </div>
 
-      <Section title="Progress">
+      {(otherActive.length > 0 || currentActiveTrip) && (
+        <Section title="Trips">
+          {currentActiveTrip && (
+            <Row label={currentActiveTrip.name} sub="Active trip" active />
+          )}
+          {otherActive.map((t) => (
+            <button key={t.id} onClick={() => setActiveTrip(t.id)} className="w-full text-left">
+              <Row label={t.name} sub="Switch to this trip" />
+            </button>
+          ))}
+          <button
+            onClick={() => {
+              startNewTripFlow();
+              navigate("/new-trip");
+            }}
+            className="w-full text-left"
+          >
+            <Row label="Start a new trip" sub="" icon={<Icon icon={ChevronRight} size={16} />} />
+          </button>
+        </Section>
+      )}
+
+      <Section title="Achievements">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between text-[13px]">
             <span className="font-semibold text-ink">Level {level}</span>
@@ -82,19 +107,41 @@ export function AccountScreen() {
         </div>
 
         <div className="px-4 py-3">
-          <p className="mb-2 text-[12px] font-medium text-slate">Achievements</p>
+          <p className="mb-2 text-[12px] font-medium text-slate">Badges</p>
           <div className="grid grid-cols-4 gap-2">
             {achievements.map((a) => (
               <div key={a.label} className="flex flex-col items-center gap-1.5 text-center">
                 <span
                   className={clsx(
-                    "flex h-11 w-11 items-center justify-center rounded-full",
-                    a.unlocked ? "bg-action-primary/12 text-action-primary" : "bg-hairline/40 text-slate",
+                    "relative flex h-12 w-12 items-center justify-center",
+                    a.unlocked ? "text-white shadow-soft" : "text-slate/50",
+                  )}
+                  style={{
+                    clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)",
+                    background: a.unlocked
+                      ? "linear-gradient(155deg, var(--action-primary), var(--pace-gold))"
+                      : "var(--hairline)",
+                    opacity: a.unlocked ? 1 : 0.5,
+                  }}
+                >
+                  <Icon icon={a.unlocked ? a.icon : Lock} size={a.unlocked ? 19 : 15} />
+                </span>
+                <span
+                  className={clsx(
+                    "text-[10px] leading-tight",
+                    a.unlocked ? "font-medium text-ink" : "text-slate/60",
                   )}
                 >
-                  <Icon icon={a.unlocked ? a.icon : Lock} size={17} />
+                  {a.label}
                 </span>
-                <span className="text-[10px] leading-tight text-slate">{a.label}</span>
+                <span
+                  className={clsx(
+                    "text-[9px] font-medium uppercase tracking-wide",
+                    a.unlocked ? "text-pace-teal" : "text-slate/50",
+                  )}
+                >
+                  {a.unlocked ? "Earned" : "Locked"}
+                </span>
               </div>
             ))}
           </div>
@@ -121,27 +168,50 @@ export function AccountScreen() {
         </div>
       </Section>
 
-      {(otherActive.length > 0 || currentActiveTrip) && (
-        <Section title="Trips">
-          {currentActiveTrip && (
-            <Row label={currentActiveTrip.name} sub="Active trip" active />
-          )}
-          {otherActive.map((t) => (
-            <button key={t.id} onClick={() => setActiveTrip(t.id)} className="w-full text-left">
-              <Row label={t.name} sub="Switch to this trip" />
+      <Section title="Past trips">
+        {pastTrips.length === 0 && <p className="px-4 py-4 text-[13px] text-slate">No past trips yet.</p>}
+        {pastTrips.map((t) => {
+          const symbol = tripCurrencySymbol(t);
+          const budget = effectiveBudget(t);
+          const spent = totalSpent(t);
+          const fraction = budget > 0 ? Math.min(spent / budget, 1) : 0;
+          const streak = longestLoggingStreak(t);
+          return (
+            <button
+              key={t.id}
+              onClick={() => navigate(`/summary/${t.id}`)}
+              className="flex w-full flex-col gap-2 px-4 py-3.5 text-left"
+            >
+              <div className="flex items-center justify-between">
+                <span>
+                  <p className="text-[14px] font-medium text-ink">{t.name}</p>
+                  <p className="text-[12px] text-slate">
+                    {formatShortDate(t.startDate)} – {formatShortDate(tripEndDateISO(t))}
+                  </p>
+                </span>
+                <Icon icon={ChevronRight} size={16} className="text-slate" />
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-pill bg-hairline/50">
+                <div
+                  className="h-full rounded-pill"
+                  style={{ width: `${fraction * 100}%`, background: spent > budget ? "var(--pace-berry)" : "var(--pace-teal)" }}
+                />
+              </div>
+              <div className="flex items-center justify-between text-[12px]">
+                <span className="tabular text-slate">
+                  {formatCurrency(spent, { symbol })} of {formatCurrency(budget, { symbol })}
+                </span>
+                {streak > 0 && (
+                  <span className="flex items-center gap-1 text-pace-teal">
+                    <Icon icon={Flame} size={12} />
+                    {streak}
+                  </span>
+                )}
+              </div>
             </button>
-          ))}
-          <button
-            onClick={() => {
-              startNewTripFlow();
-              navigate("/new-trip");
-            }}
-            className="w-full text-left"
-          >
-            <Row label="Start a new trip" sub="" icon={<Icon icon={ChevronRight} size={16} />} />
-          </button>
-        </Section>
-      )}
+          );
+        })}
+      </Section>
 
       <Section title="Appearance">
         <button onClick={toggleDarkMode} className="flex w-full items-center justify-between px-4 py-3">
@@ -159,23 +229,6 @@ export function AccountScreen() {
             />
           </span>
         </button>
-      </Section>
-
-      <Section title="Past trips">
-        {pastTrips.length === 0 && <p className="px-4 py-4 text-[13px] text-slate">No past trips yet.</p>}
-        {pastTrips.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => navigate(`/summary/${t.id}`)}
-            className="flex w-full items-center justify-between px-4 py-3 text-left"
-          >
-            <span>
-              <p className="text-[14px] font-medium text-ink">{t.name}</p>
-              <p className="text-[12px] text-slate">{formatCurrency(totalSpent(t))} spent</p>
-            </span>
-            <Icon icon={ChevronRight} size={16} className="text-slate" />
-          </button>
-        ))}
       </Section>
 
       <BottomNav />

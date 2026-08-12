@@ -17,11 +17,11 @@ export function HomeEmpty() {
           <img src="/illustrations/happy.svg" alt="" className="h-full w-full" />
         </motion.div>
         <div className="space-y-2">
-          <h1 className="font-display text-[26px] font-bold text-ink">Start your first trip</h1>
-          <p className="text-[15px] leading-relaxed text-slate">
-            Runway tracks how fast you're spending against how much time you have left, not just
-            a shrinking balance.
-          </p>
+          <h1 className="font-display text-[26px] font-bold text-ink">Let's get started</h1>
+          {/* <p className="text-[15px] leading-relaxed text-slate">
+            Runway tracks your trip budget, what you've spent, and what's left — all in one
+            place.
+          </p> */}
         </div>
         <Button onClick={() => navigate("/new-trip")}>Start a trip</Button>
       </div>

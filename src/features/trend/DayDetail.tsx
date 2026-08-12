@@ -3,7 +3,7 @@ import { AppShell } from "../../layout/AppShell";
 import { SwipeableRow } from "../../components/ui/SwipeableRow";
 import { Icon, ArrowLeft, categoryIcon } from "../../components/ui/IconIndex";
 import { useTripData } from "../../data/useTripData";
-import { dailyAllowanceBase, spentOnDay, tripDateForDay } from "../../data/calculations";
+import { spentOnDay, tripCurrencySymbol, tripDateForDay } from "../../data/calculations";
 import { categoryColor, categoryGradient } from "../../theme/tokens";
 import { formatCurrency } from "../../lib/format";
 import { formatShortDate } from "../../lib/date";
@@ -19,10 +19,8 @@ export function DayDetail() {
 
   if (!trip || !dayNumber) return <Placeholder title="Day detail" />;
 
-  const allowance = dailyAllowanceBase(trip);
+  const symbol = tripCurrencySymbol(trip);
   const spent = spentOnDay(trip, dayNumber);
-  const diff = spent - allowance;
-  const over = diff > 0;
   const expenses = trip.expenses
     .filter((e) => e.dayNumber === dayNumber)
     .sort((a, b) => b.loggedAt - a.loggedAt);
@@ -39,18 +37,10 @@ export function DayDetail() {
         </div>
       </div>
 
-      <div className="flex gap-3 px-5 pt-5">
-        <div className="flex-1 rounded-xl bg-surface px-3 py-3 shadow-soft">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-slate">Budget</p>
-          <p className="tabular mt-1 font-display text-[19px] font-semibold text-ink">{formatCurrency(allowance)}</p>
-        </div>
-        <div className="flex-1 rounded-xl bg-surface px-3 py-3 shadow-soft">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-slate">Spent</p>
-          <p className="tabular mt-1 font-display text-[19px] font-semibold text-ink">{formatCurrency(spent)}</p>
-          <p className="tabular mt-0.5 text-[12px] font-medium" style={{ color: over ? "var(--pace-berry)" : "var(--pace-teal)" }}>
-            {over ? "-" : "+"}
-            {formatCurrency(Math.abs(diff))}
-          </p>
+      <div className="px-5 pt-5">
+        <div className="rounded-xl bg-surface px-3 py-3 shadow-soft">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-slate">Spent that day</p>
+          <p className="tabular mt-1 font-display text-[19px] font-semibold text-ink">{formatCurrency(spent, { symbol })}</p>
         </div>
       </div>
 
@@ -82,7 +72,7 @@ export function DayDetail() {
                   <p className="text-[14px] font-medium text-ink">{cat?.name ?? "Other"}</p>
                   <p className="text-[12px] text-slate">{exp.note || "No note"}</p>
                 </div>
-                <span className="tabular text-[15px] font-medium text-ink">-{formatCurrency(exp.amount)}</span>
+                <span className="tabular text-[15px] font-medium text-ink">-{formatCurrency(exp.amount, { symbol })}</span>
               </button>
             </SwipeableRow>
           );

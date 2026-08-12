@@ -8,7 +8,7 @@ import { StreakChip } from "../../components/ui/StreakChip";
 import { Icon, ChevronRight, Menu, Flag } from "../../components/ui/IconIndex";
 import { HamburgerMenu } from "./HamburgerMenu";
 import { useTripData } from "../../data/useTripData";
-import { loggingStreak, totalSpent } from "../../data/calculations";
+import { loggingStreak, totalSpent, tripCurrencySymbol } from "../../data/calculations";
 import { formatCurrency } from "../../lib/format";
 import { timeGreeting } from "../../lib/greeting";
 
@@ -22,6 +22,7 @@ export function HomeReturning() {
   const totalAcrossTrips = trips.reduce((sum, t) => sum + totalSpent(t), 0);
   const latestActiveTrip = trips.find((t) => t.status === "active") ?? null;
   const streak = latestActiveTrip ? loggingStreak(latestActiveTrip) : 0;
+  const summarySymbol = trips[0] ? tripCurrencySymbol(trips[0]) : "$";
 
   return (
     <AppShell withNav>
@@ -37,7 +38,7 @@ export function HomeReturning() {
           <div>
             <p className="flex items-center gap-1.5 text-[13px] text-slate">
               <Icon icon={greeting.icon} size={15} />
-              {greeting.text}, Alex
+              {greeting.text}
             </p>
             <h1 className="font-display text-[22px] font-bold text-ink">Welcome back</h1>
           </div>
@@ -52,7 +53,7 @@ export function HomeReturning() {
 
       <div className="grid grid-cols-2 gap-3 px-5 pt-5">
         <StatTile label="Trips taken" value={String(trips.length)} tint="var(--accent-violet)" />
-        <StatTile label="Total spent" value={formatCurrency(totalAcrossTrips)} tint="var(--action-primary)" />
+        <StatTile label="Total spent" value={formatCurrency(totalAcrossTrips, { symbol: summarySymbol })} tint="var(--action-primary)" />
       </div>
 
       <div className="px-5 pt-5">
@@ -81,7 +82,8 @@ export function HomeReturning() {
               <span className="flex-1">
                 <p className="text-[14px] font-medium text-ink">{t.name}</p>
                 <p className="text-[12px] text-slate">
-                  {formatCurrency(totalSpent(t))} spent · {t.status === "active" ? "Active" : "Completed"}
+                  {formatCurrency(totalSpent(t), { symbol: tripCurrencySymbol(t) })} spent ·{" "}
+                  {t.status === "upcoming" ? "Upcoming" : t.status === "active" ? "Active" : "Completed"}
                 </p>
               </span>
               <Icon icon={ChevronRight} size={16} className="text-slate" />

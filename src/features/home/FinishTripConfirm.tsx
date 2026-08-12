@@ -5,7 +5,7 @@ import { Button } from "../../components/ui/Button";
 import { Icon, X } from "../../components/ui/IconIndex";
 import { SealCheckIllustration } from "../../components/ui/illustrations/SealCheckIllustration";
 import { useTripData } from "../../data/useTripData";
-import { daysLeft, totalSpent } from "../../data/calculations";
+import { daysLeft, totalSpent, tripCurrencySymbol } from "../../data/calculations";
 import { formatCurrency } from "../../lib/format";
 
 export function FinishTripConfirm() {
@@ -13,6 +13,7 @@ export function FinishTripConfirm() {
   const { activeTrip, finishTrip } = useTripData();
   if (!activeTrip) return null;
 
+  const symbol = tripCurrencySymbol(activeTrip);
   const spent = totalSpent(activeTrip);
   const left = Math.max(activeTrip.totalBudget - spent, 0);
 
@@ -38,8 +39,8 @@ export function FinishTripConfirm() {
         <p className="text-[14px] text-slate">You can still log expenses later, but this trip will move to your past trips and its budget won't track.</p>
 
         <div className="flex w-full gap-3">
-          <Stat label="Spent" value={formatCurrency(spent)} />
-          <Stat label="Left over" value={formatCurrency(left)} />
+          <Stat label="Spent" value={formatCurrency(spent, { symbol })} />
+          <Stat label="Left over" value={formatCurrency(left, { symbol })} />
           <Stat label="Days" value={String(daysLeft(activeTrip))} />
         </div>
       </div>

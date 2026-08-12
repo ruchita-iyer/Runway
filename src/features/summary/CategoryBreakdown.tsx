@@ -7,10 +7,12 @@ import type { Category, Expense } from "../../data/types";
 export function CategoryBreakdown({
   categories,
   expenses,
+  symbol = "$",
   startDelay = 0.2,
 }: {
   categories: Category[];
   expenses: Expense[];
+  symbol?: string;
   startDelay?: number;
 }) {
   const total = expenses.reduce((s, e) => s + e.amount, 0) || 1;
@@ -43,7 +45,7 @@ export function CategoryBreakdown({
             <div className="flex-1">
               <div className="flex items-center justify-between">
                 <span className="text-[14px] font-medium text-ink">{r.cat.name}</span>
-                <span className="tabular text-[14px] font-medium text-ink">{formatCurrency(r.amount)}</span>
+                <span className="tabular text-[14px] font-medium text-ink">{formatCurrency(r.amount, { symbol })}</span>
               </div>
               <div className="mt-1.5 h-1.5 overflow-hidden rounded-pill bg-canvas">
                 <motion.div

@@ -6,10 +6,9 @@ import { Button } from "../../components/ui/Button";
 import { CategoryPickerGrid } from "../../components/ui/CategoryPickerGrid";
 import { Icon, ArrowLeft, Calendar, ChevronRight, categoryIcon, inferCategoryIcon } from "../../components/ui/IconIndex";
 import { useTripData } from "../../data/useTripData";
-import { shouldPromptOvershoot, tripEndDateISO } from "../../data/calculations";
+import { effectiveToday, tripCurrencySymbol, tripEndDateISO } from "../../data/calculations";
 import { categoryColor, categoryGradient } from "../../theme/tokens";
 import { formatShortDate } from "../../lib/date";
-import { todayISO } from "../../lib/date";
 
 export function AddExpense() {
   const navigate = useNavigate();
@@ -20,7 +19,7 @@ export function AddExpense() {
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState<string | null>(presetCategoryId ?? null);
   const [note, setNote] = useState("");
-  const [dateISO, setDateISO] = useState(todayISO());
+  const [dateISO, setDateISO] = useState(() => (activeTrip ? effectiveToday(activeTrip) : ""));
   const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
@@ -31,6 +30,7 @@ export function AddExpense() {
     return null;
   }
 
+  const symbol = tripCurrencySymbol(activeTrip);
   const selectedCategory = activeTrip.categories.find((c) => c.id === categoryId) ?? null;
   const canSave = Number(amount) > 0 && categoryId;
 
@@ -42,17 +42,16 @@ export function AddExpense() {
       note: note.trim(),
       dateISO,
     });
-    const updatedTrip = { ...activeTrip, expenses: [...activeTrip.expenses, expense] };
-    if (shouldPromptOvershoot(updatedTrip)) {
-      navigate("/overshoot", { replace: true });
-      return;
-    }
+    // Always show the success animation first, regardless of category or whether this
+    // expense pushes the trip over budget — ExpenseSuccess redirects to /overshoot itself
+    // once the animation finishes, so the celebration never gets silently skipped.
     navigate("/expense-success", {
       replace: true,
       state: {
         justLoggedId: expense.id,
         amount: expense.amount,
         categoryName: selectedCategory?.name,
+        symbol,
       },
     });
   };
@@ -83,9 +82,9 @@ export function AddExpense() {
 
       <div className="flex flex-col gap-5 px-5 pt-8">
         <div>
-          <p className="mb-2 text-[12px] font-medium uppercase tracking-wide text-slate">Amount (USD)</p>
+          <p className="mb-2 text-[12px] font-medium uppercase tracking-wide text-slate">Amount ({activeTrip.currency.code})</p>
           <div className="flex items-center gap-2 rounded-2xl bg-surface px-4 py-4 shadow-soft">
-            <span className="tabular font-display text-[24px] font-semibold text-slate">$</span>
+            <span className="tabular font-display text-[24px] font-semibold text-slate">{symbol}</span>
             <input
               autoFocus
               value={amount}

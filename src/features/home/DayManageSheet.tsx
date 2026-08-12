@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Icon, X, Calendar, SkipForward, Flag } from "../../components/ui/IconIndex";
+import { Icon, X, Calendar, SkipBack, SkipForward, Flag } from "../../components/ui/IconIndex";
 import { useTripData } from "../../data/useTripData";
 import { currentDayNumber, tripDateForDay, tripEndDateISO } from "../../data/calculations";
 import { dayNumberFor } from "../../lib/date";
@@ -16,9 +16,10 @@ export function DayManageSheet({
   onClose: () => void;
   onEndTrip: () => void;
 }) {
-  const { setTripDay, goToNextDay } = useTripData();
+  const { setTripDay, goToNextDay, goToPreviousDay } = useTripData();
   const day = currentDayNumber(trip);
   const isLastDay = day >= trip.durationDays;
+  const isFirstDay = day <= 1;
 
   const handleDateChange = (dateISO: string) => {
     const newDay = dayNumberFor(trip.startDate, trip.durationDays, dateISO);
@@ -66,16 +67,28 @@ export function DayManageSheet({
               />
             </label>
 
-            <button
-              disabled={isLastDay}
-              onClick={() => {
-                goToNextDay(trip.id);
-              }}
-              className="mb-3 flex w-full items-center gap-3 rounded-2xl bg-surface px-4 py-3.5 text-left shadow-soft disabled:opacity-40"
-            >
-              <Icon icon={SkipForward} size={18} className="text-slate" />
-              <span className="flex-1 text-[14px] text-ink">Go to next day</span>
-            </button>
+            <div className="mb-3 flex gap-3">
+              <button
+                disabled={isFirstDay}
+                onClick={() => {
+                  goToPreviousDay(trip.id);
+                }}
+                className="flex flex-1 items-center gap-3 rounded-2xl bg-surface px-4 py-3.5 text-left shadow-soft disabled:opacity-40"
+              >
+                <Icon icon={SkipBack} size={18} className="text-slate" />
+                <span className="flex-1 text-[14px] text-ink">Previous day</span>
+              </button>
+              <button
+                disabled={isLastDay}
+                onClick={() => {
+                  goToNextDay(trip.id);
+                }}
+                className="flex flex-1 items-center gap-3 rounded-2xl bg-surface px-4 py-3.5 text-left shadow-soft disabled:opacity-40"
+              >
+                <Icon icon={SkipForward} size={18} className="text-slate" />
+                <span className="flex-1 text-[14px] text-ink">Next day</span>
+              </button>
+            </div>
 
             <button
               onClick={() => {

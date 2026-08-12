@@ -1,11 +1,18 @@
 import { motion } from "framer-motion";
 import { useNavigate, useParams } from "react-router-dom";
 import { AppShell } from "../../layout/AppShell";
-import { Icon, ArrowLeft, Share2, ChevronRight, Wallet, TrendingDown, TrendingUp } from "../../components/ui/IconIndex";
+import { Icon, ArrowLeft, ChevronRight, Wallet, TrendingDown, TrendingUp, Flame } from "../../components/ui/IconIndex";
 import { NestedRingEcho } from "./NestedRingEcho";
 import { CategoryBreakdown } from "./CategoryBreakdown";
 import { useTripData } from "../../data/useTripData";
-import { effectiveBudget, totalSpent } from "../../data/calculations";
+import {
+  effectiveBudget,
+  longestLoggingStreak,
+  loggingStreak,
+  totalSpent,
+  tripCurrencySymbol,
+  tripEndDateISO,
+} from "../../data/calculations";
 import { formatCurrency } from "../../lib/format";
 import { Placeholder } from "../../components/ui/Placeholder";
 
@@ -18,25 +25,18 @@ export function SummaryScreen() {
 
   if (!trip) return <Placeholder title="Summary" />;
 
+  const symbol = tripCurrencySymbol(trip);
   const budget = effectiveBudget(trip);
   const spent = totalSpent(trip);
   const left = budget - spent;
   const fraction = budget > 0 ? spent / budget : 0;
   const over = spent > budget;
   const statusColor = over ? "var(--pace-berry)" : "var(--pace-teal)";
-
-  const share = async () => {
-    const text = `${trip.name}: spent ${formatCurrency(spent)} of ${formatCurrency(budget)}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ text });
-      } catch {
-        /* user cancelled */
-      }
-    } else {
-      await navigator.clipboard.writeText(text);
-    }
-  };
+  const isComplete = trip.status === "complete";
+  // For a completed trip, "today" may be long after the trip ended — anchor the streak
+  // calculation to the trip's own end date so it reflects the final streak, not zero.
+  const finalStreak = isComplete ? loggingStreak(trip, tripEndDateISO(trip)) : loggingStreak(trip);
+  const bestStreak = longestLoggingStreak(trip);
 
   const rowCount = trip.categories.filter((c) => trip.expenses.some((e) => e.categoryId === c.id)).length;
   const rowsDelay = 0.65;
@@ -44,23 +44,18 @@ export function SummaryScreen() {
 
   return (
     <AppShell>
-      <div className="flex items-center justify-between px-5 pt-6">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="text-ink">
-            <Icon icon={ArrowLeft} size={22} />
-          </button>
-          <div>
-            {trip.status === "complete" && (
-              <p className="font-display text-[12px] font-semibold uppercase tracking-[0.14em] text-action-primary">
-                Wrapped
-              </p>
-            )}
-            <h1 className="font-display text-[20px] font-bold text-ink">{trip.name}</h1>
-          </div>
-        </div>
-        <button onClick={share} className="text-ink">
-          <Icon icon={Share2} size={20} />
+      <div className="flex items-center gap-3 px-5 pt-6">
+        <button onClick={() => navigate(-1)} className="text-ink">
+          <Icon icon={ArrowLeft} size={22} />
         </button>
+        <div>
+          {trip.status === "complete" && (
+            <p className="font-display text-[12px] font-semibold uppercase tracking-[0.14em] text-action-primary">
+              Wrapped
+            </p>
+          )}
+          <h1 className="font-display text-[20px] font-bold text-ink">{trip.name}</h1>
+        </div>
       </div>
 
       {trip.status === "complete" && (
@@ -80,7 +75,7 @@ export function SummaryScreen() {
               className="tabular font-display text-[26px] font-semibold"
               style={{ color: over ? statusColor : "var(--ink)" }}
             >
-              {over ? `${formatCurrency(Math.abs(left))} over` : formatCurrency(Math.max(left, 0))}
+              {over ? `${formatCurrency(Math.abs(left), { symbol })} over` : formatCurrency(Math.max(left, 0), { symbol })}
             </motion.span>
             <span className="text-[12px] text-slate">{over ? "over budget" : "left"}</span>
           </div>
@@ -90,7 +85,7 @@ export function SummaryScreen() {
             <Icon icon={over ? TrendingUp : TrendingDown} size={14} />
           </span>
           <span className="tabular">
-            Spent {formatCurrency(spent)} of {formatCurrency(budget)}
+            Spent {formatCurrency(spent, { symbol })} of {formatCurrency(budget, { symbol })}
           </span>
         </p>
       </div>
@@ -113,7 +108,7 @@ export function SummaryScreen() {
             className="tabular mt-1 font-display text-[19px] font-semibold"
             style={{ color: "var(--accent-violet)" }}
           >
-            {formatCurrency(budget)}
+            {formatCurrency(budget, { symbol })}
           </p>
         </div>
         <div
@@ -127,15 +122,37 @@ export function SummaryScreen() {
             Spent
           </p>
           <p className="tabular mt-1 font-display text-[19px] font-semibold" style={{ color: statusColor }}>
-            {formatCurrency(spent)}
+            {formatCurrency(spent, { symbol })}
           </p>
         </div>
       </motion.div>
 
       <div className="px-5 pt-8">
         <p className="mb-2 text-[13px] font-medium text-slate">By category</p>
-        <CategoryBreakdown categories={trip.categories} expenses={trip.expenses} startDelay={rowsDelay} />
+        <CategoryBreakdown categories={trip.categories} expenses={trip.expenses} symbol={symbol} startDelay={rowsDelay} />
       </div>
+
+      {isComplete && (bestStreak > 0 || finalStreak > 0) && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: rowsDelay + 0.1 }}
+          className="px-5 pt-8"
+        >
+          <p className="mb-2 text-[13px] font-medium text-slate">Achievements</p>
+          <div className="flex items-center gap-3 rounded-2xl bg-surface px-4 py-3.5 shadow-soft">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-pace-teal/12 text-pace-teal">
+              <Icon icon={Flame} size={19} />
+            </span>
+            <div>
+              <p className="text-[14px] font-medium text-ink">
+                Finished on a {finalStreak}-day logging streak
+              </p>
+              <p className="text-[12px] text-slate">Longest streak on this trip: {bestStreak} day{bestStreak === 1 ? "" : "s"}</p>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -150,14 +167,6 @@ export function SummaryScreen() {
           <span className="text-[14px] font-medium text-ink">View all expenses</span>
           <Icon icon={ChevronRight} size={18} className="text-slate" />
         </button>
-        {trip.status === "complete" && (
-          <button
-            onClick={share}
-            className="w-full rounded-pill bg-action-primary py-3.5 text-center text-[15px] font-medium text-white shadow-soft"
-          >
-            Share summary
-          </button>
-        )}
       </motion.div>
     </AppShell>
   );

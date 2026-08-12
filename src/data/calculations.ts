@@ -23,6 +23,7 @@ export function resolveScreenState(
   asOfISO: string = trip ? effectiveToday(trip) : todayISO(),
 ): ScreenState {
   if (!trip) return "empty";
+  if (trip.status === "upcoming") return "upcoming";
   if (trip.status === "complete") return "complete";
   if (isTripEnded(trip, asOfISO)) return "complete";
   return "active";
@@ -32,54 +33,32 @@ export function effectiveBudget(trip: Trip): number {
   return trip.overshootRaisedBudget ?? trip.totalBudget;
 }
 
-export function totalSpent(trip: Trip): number {
-  return trip.expenses.reduce((sum, e) => sum + e.amount, 0);
+export function tripCurrencySymbol(trip: Trip): string {
+  return trip.currency?.symbol ?? "$";
 }
 
-export function spentThroughDay(trip: Trip, day: number): number {
-  return trip.expenses.filter((e) => e.dayNumber <= day).reduce((sum, e) => sum + e.amount, 0);
+export function totalSpent(trip: Trip): number {
+  return trip.expenses.reduce((sum, e) => sum + e.amount, 0);
 }
 
 export function spentOnDay(trip: Trip, day: number): number {
   return trip.expenses.filter((e) => e.dayNumber === day).reduce((sum, e) => sum + e.amount, 0);
 }
 
-export function dailyAllowanceBase(trip: Trip): number {
-  return effectiveBudget(trip) / trip.durationDays;
+/** 0..1 fraction of the whole-trip budget spent so far, clamped for arc rendering. */
+export function budgetFraction(trip: Trip): number {
+  const budget = effectiveBudget(trip);
+  if (budget <= 0) return 1;
+  return Math.min(Math.max(totalSpent(trip) / budget, 0), 1);
 }
 
-/** Core dial metric: how much of the prorated-to-date budget remains after all spending so far. */
-export function dollarsLeftToday(trip: Trip, asOfISO: string = effectiveToday(trip)): number {
-  const day = currentDayNumber(trip, asOfISO);
-  const budgetThroughToday = dailyAllowanceBase(trip) * day;
-  return budgetThroughToday - spentThroughDay(trip, day);
-}
-
-/** 0..1 fraction of today's base allowance remaining, clamped for arc rendering. */
-export function dialFraction(trip: Trip, asOfISO: string = effectiveToday(trip)): number {
-  const base = dailyAllowanceBase(trip);
-  if (base <= 0) return 0;
-  const ratio = dollarsLeftToday(trip, asOfISO) / base;
-  return Math.min(Math.max(ratio, 0), 1);
-}
-
-export function paceStatus(trip: Trip, asOfISO: string = effectiveToday(trip)): PaceStatus {
-  const base = dailyAllowanceBase(trip);
-  if (base <= 0) return "over";
-  const ratio = dollarsLeftToday(trip, asOfISO) / base;
-  if (ratio < 0) return "over";
-  if (ratio < 0.34) return "tight";
-  return "onPace";
-}
-
-export function paceStatusForDay(trip: Trip, day: number): PaceStatus {
-  const base = dailyAllowanceBase(trip);
-  if (base <= 0) return "over";
-  const budgetThroughDay = base * day;
-  const leftAtDay = budgetThroughDay - spentThroughDay(trip, day);
-  const ratio = leftAtDay / base;
-  if (ratio < 0) return "over";
-  if (ratio < 0.34) return "tight";
+/** Whole-trip budget status — replaces the old per-day pace status with the same 3-bucket semantics/colors. */
+export function budgetStatus(trip: Trip): PaceStatus {
+  const budget = effectiveBudget(trip);
+  if (budget <= 0) return "over";
+  const ratio = totalSpent(trip) / budget;
+  if (ratio > 1) return "over";
+  if (ratio >= 0.9) return "tight";
   return "onPace";
 }
 
@@ -103,7 +82,7 @@ export function tripDateForDay(trip: Trip, day: number): string {
 
 /**
  * Consecutive days, counting back from today, with at least one expense logged. Deliberately
- * independent of pace/overshoot — a day you overspent on still counts as a logged day, so an
+ * independent of budget status — a day you overspent on still counts as a logged day, so an
  * overshoot doesn't zero out the streak the way missing a day of logging does.
  */
 export function loggingStreak(trip: Trip, asOfISO: string = effectiveToday(trip)): number {
@@ -134,17 +113,6 @@ export function longestLoggingStreak(trip: Trip): number {
     }
   }
   return longest;
-}
-
-/** Consecutive days, counting back from today, that stayed "onPace" — used for the pace-specific challenge, not the headline streak (see `loggingStreak`). */
-export function onPaceStreak(trip: Trip, asOfISO: string = effectiveToday(trip)): number {
-  const today = currentDayNumber(trip, asOfISO);
-  let streak = 0;
-  for (let d = today; d >= 1; d--) {
-    if (paceStatusForDay(trip, d) !== "onPace") break;
-    streak++;
-  }
-  return streak;
 }
 
 const MILESTONE_THRESHOLDS = [25, 50, 75, 100];

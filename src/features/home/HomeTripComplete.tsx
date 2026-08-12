@@ -4,7 +4,7 @@ import { AppShell } from "../../layout/AppShell";
 import { LatitudeDial } from "../../components/dial/LatitudeDial";
 import { Button } from "../../components/ui/Button";
 import { useTripData } from "../../data/useTripData";
-import { dialFraction, paceStatus, totalSpent } from "../../data/calculations";
+import { budgetFraction, budgetStatus, totalSpent, tripCurrencySymbol } from "../../data/calculations";
 import { formatCurrency } from "../../lib/format";
 
 export function HomeTripComplete() {
@@ -21,8 +21,9 @@ export function HomeTripComplete() {
     to();
   };
 
-  const status = paceStatus(activeTrip);
-  const fraction = dialFraction(activeTrip);
+  const symbol = tripCurrencySymbol(activeTrip);
+  const status = budgetStatus(activeTrip);
+  const fraction = 1 - budgetFraction(activeTrip);
 
   return (
     <AppShell>
@@ -53,7 +54,8 @@ export function HomeTripComplete() {
           transition={{ delay: 0.2 }}
           className="tabular text-center text-[15px] text-slate"
         >
-          Spent {formatCurrency(totalSpent(activeTrip))} over {activeTrip.durationDays} days
+          Spent {formatCurrency(totalSpent(activeTrip), { symbol })} over {activeTrip.durationDays}{" "}
+          {activeTrip.durationDays === 1 ? "day" : "days"}
         </motion.div>
 
         <div className="flex w-full flex-col gap-3 pt-4">

@@ -1,18 +1,24 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { createId } from "../lib/id";
-import { addDaysISO } from "../lib/date";
+import { addDaysISO, todayISO } from "../lib/date";
 import { currentDayNumber, effectiveToday, resolveScreenState, tripDateForDay } from "./calculations";
-import { defaultCategoriesFor } from "./seedCategories";
+import { defaultCategoriesFor, DEFAULT_CATEGORY_DEFS } from "./seedCategories";
+import { DEFAULT_CURRENCY } from "./currencies";
+import { inferCategoryIcon } from "../components/ui/IconIndex";
 import { loadState, saveState } from "./storage";
-import type { AppState, Category, Expense, ScreenState, Trip } from "./types";
+import type { AppState, Category, Currency, Expense, ScreenState, Trip, TripStatus } from "./types";
 
 interface NewTripInput {
   name: string;
   totalBudget: number;
   durationDays: number;
   startDate: string;
+  currency: Currency;
+  status?: TripStatus;
   note?: string;
+  /** Which default category names to include (defaults to all of DEFAULT_CATEGORY_DEFS). */
+  selectedDefaultNames?: string[];
   extraCategoryNames?: string[];
 }
 
@@ -47,6 +53,8 @@ interface TripDataContextValue {
   finishTrip: (tripId: string) => void;
   setTripDay: (tripId: string, day: number) => void;
   goToNextDay: (tripId: string) => void;
+  goToPreviousDay: (tripId: string) => void;
+  startPlannedTrip: (tripId: string) => void;
   startNewTripFlow: () => void;
   toggleDarkMode: () => void;
   markTutorialSeen: () => void;
@@ -114,6 +122,19 @@ export function TripDataProvider({ children }: { children: ReactNode }) {
     }
   }, [activeTrip, derivedScreen]);
 
+  // Auto-flip an "upcoming" (plan-for-later) trip to active once its start date arrives,
+  // so the user doesn't have to remember to come back and tap "Start trip now".
+  useEffect(() => {
+    if (!activeTrip || activeTrip.status !== "upcoming") return;
+    if (effectiveToday(activeTrip) >= activeTrip.startDate) {
+      setState((s) => ({
+        ...s,
+        trips: s.trips.map((t) => (t.id === activeTrip.id ? { ...t, status: "active" } : t)),
+        lastOpenedDayNumber: 1,
+      }));
+    }
+  }, [activeTrip]);
+
   const acknowledgeDayRollover = useCallback(() => setDayJustRolledOver(false), []);
   // Called when the user navigates away from the "Trip complete" screen — marks it seen so
   // Home falls back to the returning-user homepage instead of re-showing the celebration.
@@ -124,12 +145,15 @@ export function TripDataProvider({ children }: { children: ReactNode }) {
 
   const createTrip = useCallback((input: NewTripInput): Trip => {
     const id = createId("trip");
-    const categories = defaultCategoriesFor(id);
+    const allDefaults = defaultCategoriesFor(id);
+    const categories = input.selectedDefaultNames
+      ? allDefaults.filter((c) => input.selectedDefaultNames!.includes(c.name))
+      : allDefaults;
     const extra = (input.extraCategoryNames ?? []).map((name) => ({
       id: createId("cat"),
       tripId: id,
       name,
-      icon: "other",
+      icon: inferCategoryIcon(name),
       isDefault: false,
     }));
     const trip: Trip = {
@@ -138,9 +162,10 @@ export function TripDataProvider({ children }: { children: ReactNode }) {
       totalBudget: input.totalBudget,
       durationDays: input.durationDays,
       startDate: input.startDate,
+      currency: input.currency,
       categories: [...categories, ...extra],
       expenses: [],
-      status: "active",
+      status: input.status ?? "active",
       overshootAcknowledged: false,
       note: input.note,
     };
@@ -281,6 +306,27 @@ export function TripDataProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const goToPreviousDay = useCallback((tripId: string) => {
+    setState((s) => ({
+      ...s,
+      trips: s.trips.map((t) => {
+        if (t.id !== tripId) return t;
+        if (currentDayNumber(t) <= 1) return t;
+        return { ...t, simulatedTodayISO: addDaysISO(effectiveToday(t), -1) };
+      }),
+    }));
+  }, []);
+
+  const startPlannedTrip = useCallback((tripId: string) => {
+    setState((s) => ({
+      ...s,
+      trips: s.trips.map((t) =>
+        t.id === tripId ? { ...t, status: "active", startDate: todayISO(), simulatedTodayISO: undefined } : t,
+      ),
+      lastOpenedDayNumber: 1,
+    }));
+  }, []);
+
   const startNewTripFlow = useCallback(() => {
     setState((s) => ({ ...s, activeTripId: null }));
   }, []);
@@ -324,6 +370,8 @@ export function TripDataProvider({ children }: { children: ReactNode }) {
       totalBudget: 900,
       durationDays: 6,
       startDate: threeDaysAgo(),
+      currency: DEFAULT_CURRENCY,
+      selectedDefaultNames: DEFAULT_CATEGORY_DEFS.map((d) => d.name),
     });
     return trip;
   }, [createTrip]);
@@ -349,6 +397,8 @@ export function TripDataProvider({ children }: { children: ReactNode }) {
     finishTrip,
     setTripDay,
     goToNextDay,
+    goToPreviousDay,
+    startPlannedTrip,
     startNewTripFlow,
     toggleDarkMode,
     markTutorialSeen,

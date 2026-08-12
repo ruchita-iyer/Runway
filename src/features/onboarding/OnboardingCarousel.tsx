@@ -14,21 +14,21 @@ const INTRO_LOTTIE_SRC = "https://lottie.host/dab360f3-eca1-433d-84fa-7af1b37dc9
 
 const SLIDES: { headline: string; body: string; illustration: string; bg: string; float?: boolean; lottie?: string }[] = [
   {
-    headline: "Know your pace, not just your balance",
-    body: "Runway shows how fast you're spending against how much time you have left on your trip.",
+    headline: "Know your budget, not just your balance",
+    body: "Runway shows your total trip budget, what you've spent, and what's left — all in one place.",
     illustration: "/illustrations/telegram.svg",
     bg: "#eaf3fb",
     lottie: INTRO_LOTTIE_SRC,
   },
   {
-    headline: "Log in seconds, see it settle instantly",
+    headline: "Add expenses in seconds",
     body: "All your data lives on this device. No account, no syncing, nothing sent anywhere.",
     illustration: "/illustrations/wallet.svg",
     bg: "#fdf1e4",
   },
   {
-    headline: "Stay on pace, build your streak",
-    body: "Every on-pace day adds to your streak — swipe through your trip and watch it grow.",
+    headline: "Log daily, build your streak",
+    body: "Every day you log an expense adds to your streak — swipe through your trip and watch it grow.",
     illustration: "/illustrations/streak.svg",
     bg: "#eaf6ee",
   },

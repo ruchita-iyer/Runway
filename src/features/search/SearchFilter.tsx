@@ -5,6 +5,7 @@ import { Chip } from "../../components/ui/Chip";
 import { SwipeableRow } from "../../components/ui/SwipeableRow";
 import { Icon, ArrowLeft, Search, categoryIcon } from "../../components/ui/IconIndex";
 import { useTripData } from "../../data/useTripData";
+import { tripCurrencySymbol } from "../../data/calculations";
 import { formatCurrency } from "../../lib/format";
 import { formatShortDate } from "../../lib/date";
 import { Placeholder } from "../../components/ui/Placeholder";
@@ -33,6 +34,8 @@ export function SearchFilter() {
   }, [trip, query, categoryFilter]);
 
   if (!trip) return <Placeholder title="Search" />;
+
+  const symbol = tripCurrencySymbol(trip);
 
   return (
     <AppShell>
@@ -101,7 +104,7 @@ export function SearchFilter() {
                     {exp.note || "No note"} · {formatShortDate(new Date(exp.loggedAt).toISOString().slice(0, 10))}
                   </p>
                 </div>
-                <span className="tabular text-[15px] font-medium text-ink">-{formatCurrency(exp.amount)}</span>
+                <span className="tabular text-[15px] font-medium text-ink">-{formatCurrency(exp.amount, { symbol })}</span>
               </button>
             </SwipeableRow>
           );
