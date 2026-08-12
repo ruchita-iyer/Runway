@@ -1,12 +1,15 @@
 import type { ReactNode } from "react";
-import { useViewportFrame } from "../hooks/useViewportFrame";
+import { useChassisScale, useViewportFrame } from "../hooks/useViewportFrame";
 
 const FRAME_WIDTH = 390;
 const FRAME_HEIGHT = 844;
 const STATUS_BAR_HEIGHT = 44;
+const CHASSIS_WIDTH = FRAME_WIDTH + 28;
+const CHASSIS_HEIGHT = FRAME_HEIGHT + 28;
 
 export function PhoneFrame({ children }: { children: ReactNode }) {
   const isFramed = useViewportFrame();
+  const scale = useChassisScale(CHASSIS_WIDTH, CHASSIS_HEIGHT);
 
   if (!isFramed) {
     return (
@@ -23,7 +26,7 @@ export function PhoneFrame({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen w-full items-center justify-center bg-[#1a1c22] p-8">
       <div
         className="relative rounded-[44px] bg-black p-[14px] shadow-chassis"
-        style={{ width: FRAME_WIDTH + 28, height: FRAME_HEIGHT + 28 }}
+        style={{ width: CHASSIS_WIDTH, height: CHASSIS_HEIGHT, transform: `scale(${scale})` }}
       >
         <div
           className="relative overflow-hidden rounded-[32px] bg-canvas text-ink"
