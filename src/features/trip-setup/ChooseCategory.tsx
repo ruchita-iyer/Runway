@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppShell } from "../../layout/AppShell";
 import { Icon, X } from "../../components/ui/IconIndex";
@@ -9,8 +10,11 @@ export function ChooseCategory() {
   const navigate = useNavigate();
   const { activeTrip, addCategory } = useTripData();
 
+  useEffect(() => {
+    if (!activeTrip) navigate("/home", { replace: true });
+  }, [activeTrip, navigate]);
+
   if (!activeTrip) {
-    navigate("/home", { replace: true });
     return null;
   }
 

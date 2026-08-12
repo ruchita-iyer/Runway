@@ -1,6 +1,6 @@
 // Single source of truth for color tokens. Tailwind reads these via CSS vars
 // (see styles/globals.css) so light/dark is a class toggle, not a duplicated palette.
-import type { PaceStatus } from "../data/types";
+import type { Category, PaceStatus } from "../data/types";
 
 export const paceLight = {
   teal: "#3FA35C",
@@ -52,4 +52,15 @@ export function paceColorVar(status: PaceStatus): string {
   if (status === "onPace") return "var(--pace-teal)";
   if (status === "tight") return "var(--pace-gold)";
   return "var(--pace-berry)";
+}
+
+/** Same category → color assignment used by the summary breakdown chart, reused for icon badges. */
+export function categoryColor(categories: Category[], categoryId: string): string {
+  const i = categories.findIndex((c) => c.id === categoryId);
+  return categoryPalette[(i < 0 ? 0 : i) % categoryPalette.length];
+}
+
+/** Glossy gradient fill for a category badge — a lighter tint of `color` sliding into `color`. */
+export function categoryGradient(color: string): string {
+  return `linear-gradient(135deg, color-mix(in srgb, ${color} 80%, white), ${color})`;
 }

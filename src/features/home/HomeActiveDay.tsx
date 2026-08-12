@@ -7,6 +7,9 @@ import { LatitudeDial } from "../../components/dial/LatitudeDial";
 import type { DialMode } from "../../components/dial/LatitudeDial";
 import { StatTile } from "../../components/ui/StatTile";
 import { PacePulseDot } from "../../components/ui/PacePulseDot";
+import { StreakChip } from "../../components/ui/StreakChip";
+import { MilestoneToast } from "../../components/ui/MilestoneToast";
+import { SwipeableRow } from "../../components/ui/SwipeableRow";
 import { UndoBar } from "../expense/UndoBar";
 import { Celebration } from "../expense/Celebration";
 import { DayManageSheet } from "./DayManageSheet";
@@ -17,16 +20,20 @@ import { useTripData } from "../../data/useTripData";
 import {
   currentDayNumber,
   dailyAllowanceBase,
+  daysLeft,
   dialFraction,
   dollarsLeftToday,
   effectiveBudget,
   isOvershoot,
+  loggingStreak,
+  milestoneForDay,
   paceStatus,
   spentOnDay,
   totalSpent,
 } from "../../data/calculations";
 import { formatCurrency } from "../../lib/format";
 import { timeGreeting } from "../../lib/greeting";
+import { categoryColor, categoryGradient, paceColorVar } from "../../theme/tokens";
 
 export function HomeActiveDay() {
   const {
@@ -36,6 +43,7 @@ export function HomeActiveDay() {
     lastLoggedExpenseId,
     undoLastExpense,
     clearLastLogged,
+    deleteExpense,
   } = useTripData();
   const navigate = useNavigate();
   const location = useLocation();
@@ -46,11 +54,10 @@ export function HomeActiveDay() {
   const [dropTarget, setDropTarget] = useState<number | null>(null);
   const [dropTargetLeft, setDropTargetLeft] = useState<number | null>(null);
   const [dropDirection, setDropDirection] = useState<"in" | "out">("in");
-  const [pendingUndoTarget, setPendingUndoTarget] = useState<number | null>(null);
-  const [pendingUndoLeft, setPendingUndoLeft] = useState<number | null>(null);
   const [daySheetOpen, setDaySheetOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
+  const [milestone, setMilestone] = useState<number | null>(null);
 
   const day = activeTrip ? currentDayNumber(activeTrip) : 0;
   const dayRef = useRef(day);
@@ -60,12 +67,33 @@ export function HomeActiveDay() {
   // and "left today" figure stay frozen on the previous day's numbers instead of resetting.
   useEffect(() => {
     if (!activeTrip || dayRef.current === day) return;
+    const prevMilestone = activeTrip ? milestoneForDay(dayRef.current, activeTrip.durationDays) : null;
+    const nextMilestone = activeTrip ? milestoneForDay(day, activeTrip.durationDays) : null;
+    if (nextMilestone !== null && nextMilestone !== prevMilestone) setMilestone(nextMilestone);
     dayRef.current = day;
     setDisplayFraction(dialFraction(activeTrip));
     setDisplayLeft(dollarsLeftToday(activeTrip));
     setDialMode("sunrise");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [day]);
+
+  // Safety net: whenever the trip's data changes for a reason none of the more specific
+  // triggers above cover (e.g. editing/deleting an expense from the recent-activity list
+  // via SwipeableRow, which doesn't change `day` or set `justLoggedId`), resync the dial to
+  // the live-computed numbers once it's idle. Without this, displayFraction/displayLeft can
+  // go stale and keep showing a previous day's or previous edit's figures — see CLAUDE.md's
+  // note on HomeActiveDay's local dial state.
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
+    if (!activeTrip || dialMode !== "idle") return;
+    setDisplayFraction(dialFraction(activeTrip));
+    setDisplayLeft(dollarsLeftToday(activeTrip));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTrip, dialMode]);
 
   useEffect(() => {
     if (!activeTrip) return;
@@ -119,36 +147,19 @@ export function HomeActiveDay() {
     ? activeTrip.categories.find((c) => c.id === lastExpense.categoryId)?.name ?? "Other"
     : null;
 
-  const handleArcSettled = () => {
-    if (pendingUndoTarget !== null) {
-      setDropTarget(pendingUndoTarget);
-      setDropTargetLeft(pendingUndoLeft);
-      setDropDirection("out");
-      setDialMode("dropping");
-      setPendingUndoTarget(null);
-      setPendingUndoLeft(null);
-    }
-  };
-
-  const handleUndoDropComplete = () => {
-    handleDropComplete();
-    undoLastExpense();
-  };
-
   const handleUndo = () => {
     if (!lastExpense || dialMode !== "idle") return;
     const prevTrip = { ...activeTrip, expenses: activeTrip.expenses.filter((e) => e.id !== lastExpense.id) };
     const prevFraction = dialFraction(prevTrip);
     const prevLeft = dollarsLeftToday(prevTrip);
-    setPendingUndoTarget(prevFraction);
-    setPendingUndoLeft(prevLeft);
-    setDisplayFraction(prevFraction);
-    setDisplayLeft(prevLeft);
-  };
-
-  const handleDropCompleteDynamic = () => {
-    if (dropDirection === "out") handleUndoDropComplete();
-    else handleDropComplete();
+    setDropTarget(prevFraction);
+    setDropTargetLeft(prevLeft);
+    setDropDirection("out");
+    setDialMode("dropping");
+    // Mutate the data immediately rather than waiting on the drop animation to finish —
+    // gating the actual removal on an animation callback meant it silently never happened
+    // if the callback didn't fire (e.g. fraction unchanged), leaving the expense in place.
+    undoLastExpense();
   };
 
   return (
@@ -178,8 +189,13 @@ export function HomeActiveDay() {
             </button>
           </div>
         </div>
-        <PacePulseDot status={status} />
+        <div className="mt-0.5 flex items-center gap-2">
+          <StreakChip streak={loggingStreak(activeTrip)} />
+          <PacePulseDot status={status} />
+        </div>
       </div>
+
+      <MilestoneToast milestone={milestone} onDismiss={() => setMilestone(null)} />
 
       <DayOverspendNotice trip={activeTrip} />
 
@@ -206,19 +222,18 @@ export function HomeActiveDay() {
 
       <HamburgerMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
 
-      <Celebration show={celebrate} />
-
       <div className="flex flex-col items-center gap-4 px-5 pt-6">
-        <LatitudeDial
+        <div className="relative">
+          <Celebration show={celebrate} />
+          <LatitudeDial
           fraction={displayFraction}
           status={status}
           mode={dialMode}
           dropDirection={dropDirection}
           dropTargetFraction={dropTarget ?? undefined}
           showOvershootRing={overshoot}
-          onDropComplete={handleDropCompleteDynamic}
+          onDropComplete={handleDropComplete}
           onSunriseComplete={handleSunriseComplete}
-          onArcSettled={handleArcSettled}
           centerLabel={
             <>
               <AnimatePresence mode="popLayout">
@@ -235,26 +250,48 @@ export function HomeActiveDay() {
               <span className="mt-1 text-[13px] text-slate">left today</span>
             </>
           }
-        />
+          />
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+          className="w-full"
+        >
+          <div className="flex items-center justify-between text-[12px] text-slate">
+            <span className="tabular">
+              {formatCurrency(totalSpent(activeTrip))} of {formatCurrency(effectiveBudget(activeTrip))} spent
+            </span>
+            <span className="tabular">{formatCurrency(dailyAllowanceBase(activeTrip))}/day</span>
+          </div>
+          <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-pill bg-hairline/50">
+            <div
+              className="h-full rounded-pill transition-all"
+              style={{
+                width: `${Math.min((totalSpent(activeTrip) / (effectiveBudget(activeTrip) || 1)) * 100, 100)}%`,
+                background: paceColorVar(status),
+              }}
+            />
+          </div>
+        </motion.div>
 
         <motion.div
           initial="hidden"
           animate="show"
-          variants={{ show: { transition: { staggerChildren: 0.06, delayChildren: 0.1 } } }}
+          variants={{ show: { transition: { staggerChildren: 0.06, delayChildren: 0.16 } } }}
           className="grid w-full grid-cols-2 gap-3"
         >
           {[
-            { label: "Total budget", value: formatCurrency(effectiveBudget(activeTrip)) },
-            { label: "Spent", value: formatCurrency(totalSpent(activeTrip)) },
-            { label: "Daily allowance", value: formatCurrency(dailyAllowanceBase(activeTrip)) },
-            { label: "Today", value: formatCurrency(spentOnDay(activeTrip, day)) },
+            { label: "Spent today", value: formatCurrency(spentOnDay(activeTrip, day)), tint: "var(--pace-teal)" },
+            { label: "Days left", value: String(daysLeft(activeTrip)), tint: "var(--accent-violet)" },
           ].map((tile) => (
             <motion.div
               key={tile.label}
               variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
               transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
             >
-              <StatTile label={tile.label} value={tile.value} />
+              <StatTile label={tile.label} value={tile.value} tint={tile.tint} />
             </motion.div>
           ))}
         </motion.div>
@@ -267,7 +304,7 @@ export function HomeActiveDay() {
             View all
           </button>
         </div>
-        <div className="flex max-h-[260px] flex-col gap-2 overflow-y-auto pr-1">
+        <div className="flex max-h-[260px] flex-col gap-3 overflow-y-auto px-0.5 pb-1 pr-1.5">
           {recent.length === 0 && (
             <p className="rounded-2xl bg-surface px-4 py-6 text-center text-[13px] text-slate shadow-soft">
               Nothing logged yet today.
@@ -277,23 +314,30 @@ export function HomeActiveDay() {
             const cat = activeTrip.categories.find((c) => c.id === exp.categoryId);
             const IconCmp = categoryIcon(cat?.icon ?? "other");
             return (
-              <motion.button
+              <SwipeableRow
                 key={exp.id}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => navigate(`/edit-expense/${exp.id}`)}
-                className="flex shrink-0 items-center gap-3 rounded-2xl bg-surface px-4 py-3 text-left shadow-soft"
+                onEdit={() => navigate(`/edit-expense/${exp.id}`)}
+                onDelete={() => deleteExpense(exp.id)}
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-canvas text-action-primary">
-                  <Icon icon={IconCmp} size={17} />
-                </span>
-                <div className="flex-1">
-                  <p className="text-[14px] font-medium text-ink">{cat?.name ?? "Other"}</p>
-                  <p className="text-[12px] text-slate">{exp.note || "No note"}</p>
-                </div>
-                <span className="tabular text-[15px] font-medium text-ink">
-                  -{formatCurrency(exp.amount)}
-                </span>
-              </motion.button>
+                <button
+                  onClick={() => navigate(`/edit-expense/${exp.id}`)}
+                  className="flex w-full shrink-0 items-center gap-3 px-4 py-3 text-left"
+                >
+                  <span
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-white"
+                    style={{ background: categoryGradient(categoryColor(activeTrip.categories, exp.categoryId)) }}
+                  >
+                    <Icon icon={IconCmp} size={17} />
+                  </span>
+                  <div className="flex-1">
+                    <p className="text-[14px] font-medium text-ink">{cat?.name ?? "Other"}</p>
+                    <p className="text-[12px] text-slate">{exp.note || "No note"}</p>
+                  </div>
+                  <span className="tabular text-[15px] font-medium text-ink">
+                    -{formatCurrency(exp.amount)}
+                  </span>
+                </button>
+              </SwipeableRow>
             );
           })}
         </div>

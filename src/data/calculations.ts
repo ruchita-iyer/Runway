@@ -100,3 +100,59 @@ export function daysLeft(trip: Trip, asOfISO: string = effectiveToday(trip)): nu
 export function tripDateForDay(trip: Trip, day: number): string {
   return addDaysISO(trip.startDate, day - 1);
 }
+
+/**
+ * Consecutive days, counting back from today, with at least one expense logged. Deliberately
+ * independent of pace/overshoot — a day you overspent on still counts as a logged day, so an
+ * overshoot doesn't zero out the streak the way missing a day of logging does.
+ */
+export function loggingStreak(trip: Trip, asOfISO: string = effectiveToday(trip)): number {
+  const today = currentDayNumber(trip, asOfISO);
+  let streak = 0;
+  for (let d = today; d >= 1; d--) {
+    const logged = spentOnDay(trip, d) > 0;
+    if (!logged) {
+      if (d === today) continue; // today isn't over yet — don't penalize before it ends
+      break;
+    }
+    streak++;
+  }
+  return streak;
+}
+
+/** Longest run of consecutive logged days across the trip's history so far (not just the trailing streak). */
+export function longestLoggingStreak(trip: Trip): number {
+  const today = currentDayNumber(trip);
+  let longest = 0;
+  let current = 0;
+  for (let d = 1; d <= today; d++) {
+    if (spentOnDay(trip, d) > 0) {
+      current++;
+      longest = Math.max(longest, current);
+    } else {
+      current = 0;
+    }
+  }
+  return longest;
+}
+
+/** Consecutive days, counting back from today, that stayed "onPace" — used for the pace-specific challenge, not the headline streak (see `loggingStreak`). */
+export function onPaceStreak(trip: Trip, asOfISO: string = effectiveToday(trip)): number {
+  const today = currentDayNumber(trip, asOfISO);
+  let streak = 0;
+  for (let d = today; d >= 1; d--) {
+    if (paceStatusForDay(trip, d) !== "onPace") break;
+    streak++;
+  }
+  return streak;
+}
+
+const MILESTONE_THRESHOLDS = [25, 50, 75, 100];
+
+/** Highest trip-duration percentage threshold (25/50/75/100) that `day` has just reached, or null. */
+export function milestoneForDay(day: number, durationDays: number): number | null {
+  if (durationDays <= 0) return null;
+  const pct = (day / durationDays) * 100;
+  const reached = MILESTONE_THRESHOLDS.filter((t) => pct >= t);
+  return reached.length > 0 ? reached[reached.length - 1] : null;
+}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import type { ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { DIAL_ARC_SPAN_DEG, DIAL_ROTATION_DEG, SPAN_FRACTION, pointAtFraction } from "./dialMath";
@@ -19,7 +19,6 @@ interface LatitudeDialProps {
   size?: number;
   onDropComplete?: () => void;
   onSunriseComplete?: () => void;
-  onArcSettled?: () => void;
 }
 
 const SIZE_DEFAULT = 232;
@@ -36,9 +35,11 @@ export function LatitudeDial({
   size = SIZE_DEFAULT,
   onDropComplete,
   onSunriseComplete,
-  onArcSettled,
 }: LatitudeDialProps) {
   const [badgeRevealed, setBadgeRevealed] = useState(false);
+  const uid = useId();
+  const gradientId = `dial-gradient-${uid}`;
+  const glowId = `dial-glow-${uid}`;
   const cx = size / 2;
   const cy = size / 2;
   const r = size / 2 - STROKE * 1.6;
@@ -67,6 +68,20 @@ export function LatitudeDial({
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="overflow-visible">
+        <defs>
+          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style={{ stopColor: "var(--dial-grad-start)" }} />
+            <stop offset="100%" style={{ stopColor: "var(--dial-grad-end)" }} />
+          </linearGradient>
+          <filter id={glowId} x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="6" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
         {/* background track */}
         <circle
           cx={cx}
@@ -104,28 +119,50 @@ export function LatitudeDial({
           )}
         </AnimatePresence>
 
-        {/* main progress arc */}
+        {/* main progress arc: soft glow duplicate beneath + gradient stroke on top */}
         {!badgeRevealed && (
-          <motion.circle
-            cx={cx}
-            cy={cy}
-            r={r}
-            fill="none"
-            stroke={color}
-            strokeWidth={STROKE}
-            strokeLinecap="round"
-            pathLength={1}
-            strokeDasharray="1 1"
-            transform={trackTransform}
-            initial={false}
-            animate={{ pathLength: progressPathLength, stroke: color }}
-            transition={
-              mode === "complete"
-                ? { duration: 1.1, times: [0, 0.7, 1], ease: "easeInOut" }
-                : { duration: 0.55, ease: [0.22, 1, 0.36, 1] }
-            }
-            onAnimationComplete={() => onArcSettled?.()}
-          />
+          <>
+            <motion.circle
+              cx={cx}
+              cy={cy}
+              r={r}
+              fill="none"
+              stroke={`url(#${gradientId})`}
+              strokeWidth={STROKE}
+              strokeLinecap="round"
+              pathLength={1}
+              strokeDasharray="1 1"
+              opacity={0.55}
+              filter={`url(#${glowId})`}
+              transform={trackTransform}
+              initial={false}
+              animate={{ pathLength: progressPathLength }}
+              transition={
+                mode === "complete"
+                  ? { duration: 1.1, times: [0, 0.7, 1], ease: "easeInOut" }
+                  : { duration: 0.55, ease: [0.22, 1, 0.36, 1] }
+              }
+            />
+            <motion.circle
+              cx={cx}
+              cy={cy}
+              r={r}
+              fill="none"
+              stroke={`url(#${gradientId})`}
+              strokeWidth={STROKE}
+              strokeLinecap="round"
+              pathLength={1}
+              strokeDasharray="1 1"
+              transform={trackTransform}
+              initial={false}
+              animate={{ pathLength: progressPathLength }}
+              transition={
+                mode === "complete"
+                  ? { duration: 1.1, times: [0, 0.7, 1], ease: "easeInOut" }
+                  : { duration: 0.55, ease: [0.22, 1, 0.36, 1] }
+              }
+            />
+          </>
         )}
 
         {/* overshoot outer ring */}

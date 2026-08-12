@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { AppShell } from "../../layout/AppShell";
@@ -7,6 +7,7 @@ import { CategoryPickerGrid } from "../../components/ui/CategoryPickerGrid";
 import { Icon, ArrowLeft, Calendar, ChevronRight, categoryIcon, inferCategoryIcon } from "../../components/ui/IconIndex";
 import { useTripData } from "../../data/useTripData";
 import { tripEndDateISO } from "../../data/calculations";
+import { categoryColor, categoryGradient } from "../../theme/tokens";
 import { dayNumberFor, toISODate, formatShortDate } from "../../lib/date";
 
 export function EditExpense() {
@@ -23,8 +24,15 @@ export function EditExpense() {
   const [dateISO, setDateISO] = useState(() => (expense ? toISODate(new Date(expense.loggedAt)) : ""));
   const [pickerOpen, setPickerOpen] = useState(false);
 
+  // Navigating during render (rather than in an effect) here would race with the state
+  // update from `remove()` below: deleteExpense's setState re-renders this component with
+  // `expense` now undefined before the pending navigate(-1) has taken effect, which used to
+  // trigger a synchronous navigate-during-render into an infinite update loop.
+  useEffect(() => {
+    if (!trip || !expense) navigate("/home", { replace: true });
+  }, [trip, expense, navigate]);
+
   if (!trip || !expense) {
-    navigate("/home", { replace: true });
     return null;
   }
 
@@ -103,7 +111,10 @@ export function EditExpense() {
           >
             {selectedCategory ? (
               <>
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-action-primary/12 text-action-primary">
+                <span
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-white"
+                  style={{ background: categoryGradient(categoryColor(trip.categories, selectedCategory.id)) }}
+                >
                   <Icon icon={categoryIcon(selectedCategory.icon)} size={16} />
                 </span>
                 <span className="flex-1 text-[15px] font-medium text-ink">{selectedCategory.name}</span>

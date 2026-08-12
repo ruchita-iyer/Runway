@@ -1,31 +1,59 @@
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import clsx from "clsx";
 import { motion } from "framer-motion";
-import { Icon, House, BarChart3, MessageCircle, UserCircle, Plus } from "../components/ui/IconIndex";
+import { Icon, Plus } from "../components/ui/IconIndex";
+import { NAV_TABS } from "./navTabs";
 
-const LEFT_TABS = [
-  { path: "/home", label: "Home", icon: House },
-  { path: "/trend", label: "Trend", icon: BarChart3 },
-];
+const LEFT_TABS = NAV_TABS.slice(0, 2);
+const RIGHT_TABS = NAV_TABS.slice(2);
 
-const RIGHT_TABS = [
-  { path: "/advisor", label: "Advisor", icon: MessageCircle },
-  { path: "/account", label: "Account", icon: UserCircle },
-];
+const SPARK_COUNT = 6;
+
+/** Brief radial spark burst behind a tapped nav icon. Remounted (via `key`) on every tap so it replays. */
+function NavSpark() {
+  return (
+    <span className="pointer-events-none absolute inset-0">
+      {Array.from({ length: SPARK_COUNT }, (_, i) => {
+        const angle = (i / SPARK_COUNT) * Math.PI * 2;
+        return (
+          <motion.span
+            key={i}
+            initial={{ opacity: 1, x: 0, y: 0, scale: 0.4 }}
+            animate={{ opacity: 0, x: Math.cos(angle) * 16, y: Math.sin(angle) * 16, scale: 1 }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            className="absolute left-1/2 top-1/2 h-1 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-action-primary"
+          />
+        );
+      })}
+    </span>
+  );
+}
 
 export function BottomNav({ onLogExpense }: { onLogExpense?: () => void }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const [sparkTab, setSparkTab] = useState<string | null>(null);
+  const [sparkNonce, setSparkNonce] = useState(0);
+
+  const handleTap = (path: string) => {
+    setSparkTab(path);
+    setSparkNonce((n) => n + 1);
+    navigate(path);
+  };
 
   const renderTab = (tab: (typeof LEFT_TABS)[number]) => {
     const active = location.pathname === tab.path;
     return (
       <button
         key={tab.path}
-        onClick={() => navigate(tab.path)}
+        onClick={() => handleTap(tab.path)}
         className="flex flex-col items-center gap-1 px-3 py-1"
       >
-        <Icon icon={tab.icon} size={22} className={clsx(active ? "text-action-primary" : "text-slate")} />
+        <span className="relative flex h-[22px] w-[22px] items-center justify-center">
+          {sparkTab === tab.path && <NavSpark key={sparkNonce} />}
+          <Icon icon={tab.icon} size={22} className={clsx(active ? "text-action-primary" : "text-slate")} />
+        </span>
         <span className={clsx("text-[11px] font-medium", active ? "text-action-primary" : "text-slate")}>
           {tab.label}
         </span>

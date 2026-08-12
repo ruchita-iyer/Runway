@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AppShell } from "../../layout/AppShell";
 import { BottomNav } from "../../layout/BottomNav";
 import { DayBar } from "./DayBar";
@@ -11,6 +12,7 @@ import { Icon, Menu } from "../../components/ui/IconIndex";
 import { Placeholder } from "../../components/ui/Placeholder";
 
 export function TrendScreen() {
+  const navigate = useNavigate();
   const { activeTrip, state } = useTripData();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -34,6 +36,8 @@ export function TrendScreen() {
 
   const settleDays = allDays.filter((d) => d <= reachedThrough).reverse();
 
+  const openDay = (d: number) => navigate(`/day/${trip.id}/${d}`);
+
   return (
     <AppShell withNav>
       <div className="flex items-center justify-between px-5 pt-6">
@@ -53,7 +57,7 @@ export function TrendScreen() {
 
       <div className="px-5 pt-6">
         <p className="mb-4 text-[13px] font-medium text-slate">Actual vs Planned</p>
-        <TrendBarChart days={chartDays} />
+        <TrendBarChart days={chartDays} onDayClick={openDay} />
       </div>
 
       <div className="px-5 pb-6 pt-8">
@@ -71,6 +75,7 @@ export function TrendScreen() {
               dateISO={addDaysISO(trip.startDate, d - 1)}
               spent={spentOnDay(trip, d)}
               allowance={allowance}
+              onClick={() => openDay(d)}
             />
           ))}
         </div>

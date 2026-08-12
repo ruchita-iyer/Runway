@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { categoryPalette } from "../../theme/tokens";
+import { categoryGradient, categoryPalette } from "../../theme/tokens";
 import { categoryIcon, Icon } from "../../components/ui/IconIndex";
 import { formatCurrency } from "../../lib/format";
 import type { Category, Expense } from "../../data/types";
@@ -37,7 +37,7 @@ export function CategoryBreakdown({
             transition={{ duration: 0.3, delay: rowDelay, ease: [0.22, 1, 0.36, 1] }}
             className="flex items-center gap-3 rounded-2xl bg-surface px-4 py-3 shadow-soft"
           >
-            <span className="flex h-9 w-9 items-center justify-center rounded-full text-white" style={{ backgroundColor: r.color }}>
+            <span className="flex h-9 w-9 items-center justify-center rounded-full text-white" style={{ background: categoryGradient(r.color) }}>
               <Icon icon={IconCmp} size={16} />
             </span>
             <div className="flex-1">

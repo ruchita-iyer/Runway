@@ -2,7 +2,6 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { AppShell } from "../../layout/AppShell";
 import { Button } from "../../components/ui/Button";
-import { CompassIllustration } from "../../components/ui/illustrations/CompassIllustration";
 
 export function HomeEmpty() {
   const navigate = useNavigate();
@@ -13,9 +12,9 @@ export function HomeEmpty() {
           initial={{ opacity: 0, scale: 0.85 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className="flex h-28 w-28 items-center justify-center rounded-full bg-action-primary/12 text-action-primary"
+          className="flex h-32 w-32 items-center justify-center"
         >
-          <CompassIllustration size={52} />
+          <img src="/illustrations/happy.svg" alt="" className="h-full w-full" />
         </motion.div>
         <div className="space-y-2">
           <h1 className="font-display text-[26px] font-bold text-ink">Start your first trip</h1>

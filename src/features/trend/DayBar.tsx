@@ -6,17 +6,22 @@ export function DayBar({
   dateISO,
   spent,
   allowance,
+  onClick,
 }: {
   dayNumber: number;
   dateISO: string;
   spent: number;
   allowance: number;
+  onClick?: () => void;
 }) {
   const diff = spent - allowance;
   const over = diff > 0;
 
   return (
-    <div className="flex items-center justify-between rounded-2xl bg-surface px-4 py-3.5 shadow-soft">
+    <button
+      onClick={onClick}
+      className="flex w-full items-center justify-between rounded-2xl bg-surface px-4 py-3.5 text-left shadow-soft active:opacity-80"
+    >
       <div>
         <p className="text-[14px] font-semibold text-ink">
           Day {dayNumber} <span className="font-normal text-slate">· {formatShortDate(dateISO)}</span>
@@ -31,11 +36,11 @@ export function DayBar({
             style={{ backgroundColor: over ? "var(--pace-berry)" : "var(--pace-teal)" }}
           />
           <span style={{ color: over ? "var(--pace-berry)" : "var(--pace-teal)" }}>
-            {over ? "+" : "-"}
+            {over ? "-" : "+"}
             {formatCurrency(Math.abs(diff))}
           </span>
         </p>
       </div>
-    </div>
+    </button>
   );
 }

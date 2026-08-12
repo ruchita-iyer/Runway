@@ -42,6 +42,13 @@ import {
   HeartPulse,
   Wallet,
   TrendingDown,
+  Flame,
+  Trophy,
+  Award,
+  Target,
+  Send,
+  Bot,
+  Lock,
 } from "lucide-react";
 import { createElement } from "react";
 import type { LucideIcon } from "lucide-react";
@@ -104,6 +111,13 @@ export {
   HeartPulse,
   Wallet,
   TrendingDown,
+  Flame,
+  Trophy,
+  Award,
+  Target,
+  Send,
+  Bot,
+  Lock,
 };
 
 export const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {

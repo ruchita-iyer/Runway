@@ -23,6 +23,9 @@
   --category-5: #b98066;
   --category-6: #8c7a6b;
 
+  --dial-grad-start: #e0393b;
+  --dial-grad-end: #7c3aed;
+
   --app-height: 100dvh;
 }
 
@@ -39,6 +42,9 @@
   --ink: #f6ede2;
   --slate: #b3a494;
   --hairline: #3c2f24;
+
+  --dial-grad-start: #ff5c5c;
+  --dial-grad-end: #a166f5;
 }
 
 * {

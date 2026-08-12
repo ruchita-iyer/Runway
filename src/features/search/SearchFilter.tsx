@@ -2,16 +2,18 @@ import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AppShell } from "../../layout/AppShell";
 import { Chip } from "../../components/ui/Chip";
+import { SwipeableRow } from "../../components/ui/SwipeableRow";
 import { Icon, ArrowLeft, Search, categoryIcon } from "../../components/ui/IconIndex";
 import { useTripData } from "../../data/useTripData";
 import { formatCurrency } from "../../lib/format";
 import { formatShortDate } from "../../lib/date";
 import { Placeholder } from "../../components/ui/Placeholder";
+import { categoryColor, categoryGradient } from "../../theme/tokens";
 
 export function SearchFilter() {
   const navigate = useNavigate();
   const { tripId } = useParams();
-  const { state, activeTrip } = useTripData();
+  const { state, activeTrip, deleteExpense } = useTripData();
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
 
@@ -78,22 +80,30 @@ export function SearchFilter() {
         {results.map((exp) => {
           const cat = trip.categories.find((c) => c.id === exp.categoryId);
           return (
-            <button
+            <SwipeableRow
               key={exp.id}
-              onClick={() => navigate(`/edit-expense/${exp.id}`)}
-              className="flex items-center gap-3 rounded-2xl bg-surface px-4 py-3 text-left shadow-soft"
+              onEdit={() => navigate(`/edit-expense/${exp.id}`)}
+              onDelete={() => deleteExpense(exp.id)}
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-canvas text-action-primary">
-                <Icon icon={categoryIcon(cat?.icon ?? "other")} size={16} />
-              </span>
-              <div className="flex-1">
-                <p className="text-[14px] font-medium text-ink">{cat?.name ?? "Other"}</p>
-                <p className="text-[12px] text-slate">
-                  {exp.note || "No note"} · {formatShortDate(new Date(exp.loggedAt).toISOString().slice(0, 10))}
-                </p>
-              </div>
-              <span className="tabular text-[15px] font-medium text-ink">-{formatCurrency(exp.amount)}</span>
-            </button>
+              <button
+                onClick={() => navigate(`/edit-expense/${exp.id}`)}
+                className="flex w-full items-center gap-3 px-4 py-3 text-left"
+              >
+                <span
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-white"
+                  style={{ background: categoryGradient(categoryColor(trip.categories, exp.categoryId)) }}
+                >
+                  <Icon icon={categoryIcon(cat?.icon ?? "other")} size={16} />
+                </span>
+                <div className="flex-1">
+                  <p className="text-[14px] font-medium text-ink">{cat?.name ?? "Other"}</p>
+                  <p className="text-[12px] text-slate">
+                    {exp.note || "No note"} · {formatShortDate(new Date(exp.loggedAt).toISOString().slice(0, 10))}
+                  </p>
+                </div>
+                <span className="tabular text-[15px] font-medium text-ink">-{formatCurrency(exp.amount)}</span>
+              </button>
+            </SwipeableRow>
           );
         })}
       </div>

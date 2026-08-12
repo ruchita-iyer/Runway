@@ -27,6 +27,14 @@ export function HomeTripComplete() {
   return (
     <AppShell>
       <div className="flex flex-col items-center gap-6 px-6 pt-10">
+        <motion.div
+          initial={{ opacity: 0, y: -8, scale: 0.8 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: "spring", stiffness: 260, damping: 16, delay: 0.1 }}
+          className="flex h-16 w-16 items-center justify-center"
+        >
+          <img src="/illustrations/happy.svg" alt="" className="h-full w-full" />
+        </motion.div>
         <div className="text-center">
           <p className="text-[13px] text-slate">{activeTrip.name}</p>
           <h1 className="font-display text-[22px] font-bold text-ink">Trip complete</h1>
@@ -51,6 +59,9 @@ export function HomeTripComplete() {
         <div className="flex w-full flex-col gap-3 pt-4">
           <Button variant="secondary" onClick={() => leave(() => navigate("/summary"))}>
             View summary
+          </Button>
+          <Button variant="ghost" onClick={() => leave(() => navigate("/home"))}>
+            Go home
           </Button>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { AppShell } from "../../layout/AppShell";
@@ -7,6 +7,7 @@ import { CategoryPickerGrid } from "../../components/ui/CategoryPickerGrid";
 import { Icon, ArrowLeft, Calendar, ChevronRight, categoryIcon, inferCategoryIcon } from "../../components/ui/IconIndex";
 import { useTripData } from "../../data/useTripData";
 import { shouldPromptOvershoot, tripEndDateISO } from "../../data/calculations";
+import { categoryColor, categoryGradient } from "../../theme/tokens";
 import { formatShortDate } from "../../lib/date";
 import { todayISO } from "../../lib/date";
 
@@ -22,8 +23,11 @@ export function AddExpense() {
   const [dateISO, setDateISO] = useState(todayISO());
   const [pickerOpen, setPickerOpen] = useState(false);
 
+  useEffect(() => {
+    if (!activeTrip) navigate("/home", { replace: true });
+  }, [activeTrip, navigate]);
+
   if (!activeTrip) {
-    navigate("/home", { replace: true });
     return null;
   }
 
@@ -43,7 +47,14 @@ export function AddExpense() {
       navigate("/overshoot", { replace: true });
       return;
     }
-    navigate("/home", { replace: true, state: { justLoggedId: expense.id } });
+    navigate("/expense-success", {
+      replace: true,
+      state: {
+        justLoggedId: expense.id,
+        amount: expense.amount,
+        categoryName: selectedCategory?.name,
+      },
+    });
   };
 
   return (
@@ -94,7 +105,10 @@ export function AddExpense() {
           >
             {selectedCategory ? (
               <>
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-action-primary/12 text-action-primary">
+                <span
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-white"
+                  style={{ background: categoryGradient(categoryColor(activeTrip.categories, selectedCategory.id)) }}
+                >
                   <Icon icon={categoryIcon(selectedCategory.icon)} size={16} />
                 </span>
                 <span className="flex-1 text-[15px] font-medium text-ink">{selectedCategory.name}</span>

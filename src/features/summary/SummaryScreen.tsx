@@ -101,14 +101,25 @@ export function SummaryScreen() {
         transition={{ duration: 0.35, delay: 0.55 }}
         className="flex gap-3 px-5 pt-6"
       >
-        <div className="flex-1 rounded-xl bg-surface px-3 py-3 shadow-soft">
+        <div
+          className="flex-1 rounded-xl px-3 py-3 shadow-soft"
+          style={{ background: "color-mix(in srgb, var(--accent-violet) 16%, var(--surface))" }}
+        >
           <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-slate">
             <Icon icon={Wallet} size={12} />
             Budget
           </p>
-          <p className="tabular mt-1 font-display text-[19px] font-semibold text-ink">{formatCurrency(budget)}</p>
+          <p
+            className="tabular mt-1 font-display text-[19px] font-semibold"
+            style={{ color: "var(--accent-violet)" }}
+          >
+            {formatCurrency(budget)}
+          </p>
         </div>
-        <div className="flex-1 rounded-xl bg-surface px-3 py-3 shadow-soft">
+        <div
+          className="flex-1 rounded-xl px-3 py-3 shadow-soft"
+          style={{ background: `color-mix(in srgb, ${statusColor} 16%, var(--surface))` }}
+        >
           <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-slate">
             <span style={{ color: statusColor }}>
               <Icon icon={over ? TrendingUp : TrendingDown} size={12} />
