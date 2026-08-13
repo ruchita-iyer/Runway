@@ -28,7 +28,7 @@ const SLIDES: { headline: string; body: string; illustration: string; bg: string
   },
   {
     headline: "Log daily, build your streak",
-    body: "Every day you log an expense adds to your streak — swipe through your trip and watch it grow.",
+    body: "Adding a new expense each day adds to your streak.",
     illustration: "/illustrations/streak.svg",
     bg: "#eaf6ee",
   },

@@ -131,9 +131,8 @@ export function NewTrip() {
                 key={mode}
                 type="button"
                 onClick={() => setStartMode(mode)}
-                className={`flex-1 rounded-xl py-2.5 text-[14px] font-medium transition-colors ${
-                  startMode === mode ? "bg-action-primary text-white" : "text-slate"
-                }`}
+                className={`flex-1 rounded-xl py-2.5 text-[14px] font-medium transition-colors ${startMode === mode ? "bg-action-primary text-white" : "text-slate"
+                  }`}
               >
                 {mode === "now" ? "Start my trip today" : "Plan for later"}
               </button>
@@ -172,7 +171,7 @@ export function NewTrip() {
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Anything worth remembering about this trip"
+            placeholder="Anything to note about this trip"
             rows={2}
             className="w-full resize-none bg-transparent text-[15px] text-ink placeholder:text-slate/40 focus:outline-none"
           />

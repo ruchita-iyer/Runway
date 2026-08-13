@@ -24,7 +24,9 @@ export function AccountScreen() {
 
   const pastTrips = state.trips.filter((t) => t.status === "complete");
   const currentActiveTrip = activeTrip && activeTrip.status === "active" ? activeTrip : null;
-  const otherActive = state.trips.filter((t) => t.status === "active" && t.id !== activeTrip?.id);
+  const otherTrips = state.trips.filter(
+    (t) => (t.status === "active" || t.status === "upcoming") && t.id !== activeTrip?.id,
+  );
 
   const totalExpenses = state.trips.reduce((sum, t) => sum + t.expenses.length, 0);
   const bestStreak = state.trips.reduce((max, t) => Math.max(max, longestLoggingStreak(t)), 0);
@@ -56,14 +58,17 @@ export function AccountScreen() {
         <h1 className="font-display text-[20px] font-bold text-ink">Account</h1>
       </div>
 
-      {(otherActive.length > 0 || currentActiveTrip) && (
+      {(otherTrips.length > 0 || currentActiveTrip) && (
         <Section title="Trips">
           {currentActiveTrip && (
             <Row label={currentActiveTrip.name} sub="Active trip" active />
           )}
-          {otherActive.map((t) => (
+          {otherTrips.map((t) => (
             <button key={t.id} onClick={() => setActiveTrip(t.id)} className="w-full text-left">
-              <Row label={t.name} sub="Switch to this trip" />
+              <Row
+                label={t.name}
+                sub={t.status === "upcoming" ? `Upcoming · starts ${formatShortDate(t.startDate)}` : "Switch to this trip"}
+              />
             </button>
           ))}
           <button

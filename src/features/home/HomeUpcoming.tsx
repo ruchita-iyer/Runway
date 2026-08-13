@@ -1,16 +1,18 @@
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { AppShell } from "../../layout/AppShell";
 import { BottomNav } from "../../layout/BottomNav";
 import { Button } from "../../components/ui/Button";
 import { StatTile } from "../../components/ui/StatTile";
-import { Icon, Calendar, Flag } from "../../components/ui/IconIndex";
+import { Icon, Calendar, Flag, Plus } from "../../components/ui/IconIndex";
 import { useTripData } from "../../data/useTripData";
 import { effectiveToday, tripCurrencySymbol } from "../../data/calculations";
 import { formatCurrency } from "../../lib/format";
 import { formatShortDate } from "../../lib/date";
 
 export function HomeUpcoming() {
-  const { activeTrip, startPlannedTrip } = useTripData();
+  const navigate = useNavigate();
+  const { activeTrip, startPlannedTrip, startNewTripFlow } = useTripData();
 
   if (!activeTrip) return null;
 
@@ -65,6 +67,22 @@ export function HomeUpcoming() {
           {canStartNow
             ? "Your trip is ready — tap above to start tracking."
             : `You can start once your trip begins on ${formatShortDate(activeTrip.startDate)}.`}
+        </p>
+      </div>
+
+      <div className="px-5 pt-6">
+        <button
+          onClick={() => {
+            startNewTripFlow();
+            navigate("/new-trip");
+          }}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-surface px-4 py-3.5 text-[14px] font-medium text-ink shadow-soft"
+        >
+          <Icon icon={Plus} size={17} />
+          Start a different trip on the spot
+        </button>
+        <p className="mt-3 text-center text-[12px] text-slate">
+          Heading somewhere else right now? Start a new trip without touching your planned {activeTrip.name} dates.
         </p>
       </div>
 

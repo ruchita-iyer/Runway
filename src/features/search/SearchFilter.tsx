@@ -77,7 +77,7 @@ export function SearchFilter() {
       <div className="flex flex-col gap-2 px-5 pt-5">
         {results.length === 0 && (
           <p className="rounded-2xl bg-surface px-4 py-6 text-center text-[13px] text-slate shadow-soft">
-            No expenses match.
+            No expenses.
           </p>
         )}
         {results.map((exp) => {

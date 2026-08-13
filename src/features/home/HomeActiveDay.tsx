@@ -120,6 +120,7 @@ export function HomeActiveDay() {
   const recent = [...activeTrip.expenses].sort((a, b) => b.loggedAt - a.loggedAt).slice(0, 3);
   const overshoot = isOvershoot(activeTrip);
   const greeting = timeGreeting();
+  const centerAmountText = `${displayLeft < 0 ? "-" : "+"}${formatCurrency(Math.abs(displayLeft), { symbol })}`;
 
   const handleDropComplete = () => {
     if (dropTarget !== null) setDisplayFraction(dropTarget);
@@ -226,11 +227,13 @@ export function HomeActiveDay() {
                   initial={{ opacity: 0, y: 8, scale: 0.92 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-                  className="tabular font-display text-[34px] font-semibold"
-                  style={{ color: displayLeft < 0 ? "var(--pace-berry)" : "var(--pace-teal)" }}
+                  className="tabular font-display max-w-full truncate font-semibold"
+                  style={{
+                    color: displayLeft < 0 ? "var(--pace-berry)" : "var(--pace-teal)",
+                    fontSize: dialAmountFontSize(centerAmountText),
+                  }}
                 >
-                  {displayLeft < 0 ? "-" : "+"}
-                  {formatCurrency(Math.abs(displayLeft), { symbol })}
+                  {centerAmountText}
                 </motion.span>
               </AnimatePresence>
               <span className="mt-1 text-[13px] text-slate">left</span>
@@ -325,4 +328,14 @@ export function HomeActiveDay() {
       <BottomNav onLogExpense={() => navigate("/add-expense")} />
     </AppShell>
   );
+}
+
+/** Scales the dial's center amount down as the formatted string grows, so long currency values never overflow the arc gap. */
+function dialAmountFontSize(text: string): number {
+  const len = text.length;
+  if (len <= 7) return 34;
+  if (len <= 9) return 30;
+  if (len <= 11) return 26;
+  if (len <= 13) return 22;
+  return 19;
 }

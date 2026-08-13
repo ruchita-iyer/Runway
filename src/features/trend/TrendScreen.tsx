@@ -4,6 +4,7 @@ import { AppShell } from "../../layout/AppShell";
 import { BottomNav } from "../../layout/BottomNav";
 import { DayBar } from "./DayBar";
 import { TrendLineChart } from "./TrendLineChart";
+import { CategoryPieChart } from "./CategoryPieChart";
 import { HamburgerMenu } from "../home/HamburgerMenu";
 import { useTripData } from "../../data/useTripData";
 import { currentDayNumber, effectiveBudget, spentOnDay, tripCurrencySymbol } from "../../data/calculations";
@@ -64,6 +65,11 @@ export function TrendScreen() {
       <div className="px-5 pt-6">
         <p className="mb-4 text-[13px] font-medium text-slate">Spend over time</p>
         <TrendLineChart days={chartDays} budget={budget} symbol={symbol} onDayClick={openDay} />
+      </div>
+
+      <div className="px-5 pt-8">
+        <p className="mb-4 text-[13px] font-medium text-slate">By category</p>
+        <CategoryPieChart categories={trip.categories} expenses={trip.expenses} symbol={symbol} />
       </div>
 
       <div className="px-5 pb-6 pt-8">
