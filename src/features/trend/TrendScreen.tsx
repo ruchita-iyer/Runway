@@ -3,11 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { AppShell } from "../../layout/AppShell";
 import { BottomNav } from "../../layout/BottomNav";
 import { DayBar } from "./DayBar";
-import { TrendLineChart } from "./TrendLineChart";
 import { CategoryPieChart } from "./CategoryPieChart";
 import { HamburgerMenu } from "../home/HamburgerMenu";
 import { useTripData } from "../../data/useTripData";
-import { currentDayNumber, effectiveBudget, spentOnDay, tripCurrencySymbol } from "../../data/calculations";
+import { currentDayNumber, spentOnDay, tripCurrencySymbol } from "../../data/calculations";
 import { addDaysISO } from "../../lib/date";
 import { Icon, Menu } from "../../components/ui/IconIndex";
 import { Placeholder } from "../../components/ui/Placeholder";
@@ -24,20 +23,8 @@ export function TrendScreen() {
 
   const isPastTrip = !activeTrip;
   const symbol = tripCurrencySymbol(trip);
-  const budget = effectiveBudget(trip);
   const reachedThrough = trip.status === "complete" ? trip.durationDays : currentDayNumber(trip);
   const allDays = Array.from({ length: trip.durationDays }, (_, i) => i + 1);
-
-  let cumulative = 0;
-  const chartDays = allDays.map((d) => {
-    cumulative += spentOnDay(trip, d);
-    return {
-      dayNumber: d,
-      dateISO: addDaysISO(trip.startDate, d - 1),
-      cumulative,
-      reached: d <= reachedThrough,
-    };
-  });
 
   const settleDays = allDays.filter((d) => d <= reachedThrough).reverse();
 
@@ -62,13 +49,8 @@ export function TrendScreen() {
 
       <HamburgerMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
 
-      <div className="px-5 pt-6">
-        <p className="mb-4 text-[13px] font-medium text-slate">Spend over time</p>
-        <TrendLineChart days={chartDays} budget={budget} symbol={symbol} onDayClick={openDay} />
-      </div>
-
-      <div className="px-5 pt-8">
-        <p className="mb-4 text-[13px] font-medium text-slate">By category</p>
+      <div className="pt-6">
+        <p className="mb-4 px-5 text-[13px] font-medium text-slate">By category</p>
         <CategoryPieChart categories={trip.categories} expenses={trip.expenses} symbol={symbol} />
       </div>
 

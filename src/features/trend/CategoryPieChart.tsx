@@ -1,16 +1,19 @@
 import { motion } from "framer-motion";
 import { categoryColor } from "../../theme/tokens";
-import { categoryIcon, Icon } from "../../components/ui/IconIndex";
 import { formatCurrency } from "../../lib/format";
 import type { Category, Expense } from "../../data/types";
 
-const SIZE = 180;
-const RADIUS = 72;
-const STROKE = 30;
+const SIZE = 300;
+const CENTER = SIZE / 2;
+const RADIUS = 64;
+const STROKE = 24;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 const GAP_DEG = 3;
+const LABEL_RADIUS = RADIUS + STROKE / 2 + 28;
+const LEADER_START_RADIUS = RADIUS + STROKE / 2 + 4;
+const LEADER_END_RADIUS = RADIUS + STROKE / 2 + 18;
 
-/** Donut chart of % spent per category, with a legend of shares below. */
+/** Donut chart of % spent per category, labeled directly around the ring rather than in a separate legend. */
 export function CategoryPieChart({
   categories,
   expenses,
@@ -46,62 +49,83 @@ export function CategoryPieChart({
     cursorDeg += sweep;
     const gap = rows.length > 1 ? GAP_DEG : 0;
     const arcLen = Math.max((sweep / 360) * CIRCUMFERENCE - gap, 0);
-    return { ...r, fraction, startDeg, arcLen };
+    const midDeg = startDeg + sweep / 2;
+    const midRad = (midDeg * Math.PI) / 180;
+    const cos = Math.cos(midRad);
+    const sin = Math.sin(midRad);
+    return {
+      ...r,
+      fraction,
+      startDeg,
+      arcLen,
+      leaderStart: { x: CENTER + LEADER_START_RADIUS * cos, y: CENTER + LEADER_START_RADIUS * sin },
+      leaderEnd: { x: CENTER + LEADER_END_RADIUS * cos, y: CENTER + LEADER_END_RADIUS * sin },
+      labelPoint: { x: CENTER + LABEL_RADIUS * cos, y: CENTER + LABEL_RADIUS * sin },
+      anchor: cos > 0.2 ? "start" : cos < -0.2 ? "end" : "middle",
+    } as const;
   });
 
   return (
-    <div className="flex flex-col items-center gap-6">
+    <div className="flex justify-center">
       <div className="relative" style={{ width: SIZE, height: SIZE }}>
-        <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
-          <circle cx={SIZE / 2} cy={SIZE / 2} r={RADIUS} fill="none" stroke="var(--hairline)" strokeWidth={STROKE} strokeOpacity={0.5} />
+        <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} className="overflow-visible">
+          <circle cx={CENTER} cy={CENTER} r={RADIUS} fill="none" stroke="var(--hairline)" strokeWidth={STROKE} strokeOpacity={0.5} />
           {segments.map((s, idx) => (
             <motion.circle
               key={s.cat.id}
-              cx={SIZE / 2}
-              cy={SIZE / 2}
+              cx={CENTER}
+              cy={CENTER}
               r={RADIUS}
               fill="none"
               stroke={s.color}
               strokeWidth={STROKE}
               strokeLinecap="round"
               strokeDasharray={`${s.arcLen} ${CIRCUMFERENCE - s.arcLen}`}
-              transform={`rotate(${s.startDeg} ${SIZE / 2} ${SIZE / 2})`}
+              transform={`rotate(${s.startDeg} ${CENTER} ${CENTER})`}
               initial={{ opacity: 0, scale: 0.85 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.4, delay: idx * 0.06, ease: [0.22, 1, 0.36, 1] }}
-              style={{ transformOrigin: `${SIZE / 2}px ${SIZE / 2}px` }}
+              style={{ transformOrigin: `${CENTER}px ${CENTER}px` }}
             />
+          ))}
+
+          {segments.map((s, idx) => (
+            <motion.g
+              key={`label-${s.cat.id}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3, delay: 0.3 + idx * 0.06 }}
+            >
+              <line
+                x1={s.leaderStart.x}
+                y1={s.leaderStart.y}
+                x2={s.leaderEnd.x}
+                y2={s.leaderEnd.y}
+                stroke={s.color}
+                strokeWidth={1.5}
+                strokeOpacity={0.6}
+              />
+              <text
+                x={s.labelPoint.x}
+                y={s.labelPoint.y}
+                textAnchor={s.anchor}
+                dominantBaseline="middle"
+                className="tabular"
+              >
+                <tspan x={s.labelPoint.x} dy="-0.3em" style={{ fontSize: 11.5, fontWeight: 600, fill: "var(--ink)" }}>
+                  {s.cat.name}
+                </tspan>
+                <tspan x={s.labelPoint.x} dy="1.25em" style={{ fontSize: 11, fontWeight: 500, fill: s.color }}>
+                  {Math.round(s.fraction * 100)}%
+                </tspan>
+              </text>
+            </motion.g>
           ))}
         </svg>
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
           <p className="tabular text-[18px] font-bold text-ink">{formatCurrency(total, { symbol })}</p>
           <p className="text-[11px] text-slate">total spent</p>
         </div>
-      </div>
-
-      <div className="flex w-full flex-col gap-2">
-        {segments.map((s, idx) => {
-          const IconCmp = categoryIcon(s.cat.icon);
-          return (
-            <motion.div
-              key={s.cat.id}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.2 + idx * 0.05 }}
-              className="flex items-center gap-3 rounded-2xl bg-surface px-4 py-2.5 shadow-soft"
-            >
-              <span
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white"
-                style={{ backgroundColor: s.color }}
-              >
-                <Icon icon={IconCmp} size={14} />
-              </span>
-              <span className="flex-1 text-[13px] font-medium text-ink">{s.cat.name}</span>
-              <span className="tabular text-[13px] font-medium text-ink">{Math.round(s.fraction * 100)}%</span>
-              <span className="tabular w-16 text-right text-[12px] text-slate">{formatCurrency(s.amount, { symbol })}</span>
-            </motion.div>
-          );
-        })}
       </div>
     </div>
   );

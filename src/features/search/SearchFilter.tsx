@@ -80,6 +80,9 @@ export function SearchFilter() {
             No expenses.
           </p>
         )}
+        {results.length > 0 && (
+          <p className="mb-1 text-center text-[12px] text-slate">Swipe an expense left to edit or delete it</p>
+        )}
         {results.map((exp) => {
           const cat = trip.categories.find((c) => c.id === exp.categoryId);
           return (
