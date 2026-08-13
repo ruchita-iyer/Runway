@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<!--
+  Runway — Full Design System embed
+  Drop-in component for a Framer "Embed" (HTML) layer.
+
+  Usage in Framer:
+    1. Add an Embed component to the canvas.
+    2. Choose "Paste HTML" and paste this entire file's contents.
+    3. Set the layer to Fixed width / Fixed height (e.g. 1180 x 900) or
+       Fill on both — the page scrolls internally, and the left-hand
+       section nav collapses below 860px width.
+
+  Self-contained: no external fonts, scripts, or network requests, so it
+  renders identically inside Framer's sandboxed iframe. Includes a
+  light/dark/auto theme toggle in the top bar.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Runway Design System</title>
+<script>
+  (function () {
+    function bpFor(w) {
+      if (w <= 420) return "xs";
+      if (w <= 640) return "sm";
+      if (w <= 860) return "md";
+      return "lg";
+    }
+    document.documentElement.setAttribute("data-bp", bpFor(window.innerWidth || document.documentElement.clientWidth));
+  })();
+</script>
+<style>
+  :root {
+    --canvas: #fbf3ea;
+    --surface: #ffffff;
+    --surface-2: #f6ede0;
+    --ink: #241c15;
+    --slate: #8f8071;
+    --hairline: #ede1d3;
+
+    --action-primary: #f2653c;
+    --accent-violet: #c0673f;
+
+    --pace-teal: #3fa35c;
+    --pace-gold: #e0a337;
+    --pace-berry: #e0393b;
+
+    --cat-1: #f2a65a;
+    --cat-2: #e8734a;
+    --cat-3: #c1533d;
+    --cat-4: #d9a441;
+    --cat-5: #b98066;
+    --cat-6: #8c7a6b;
+
+    --dial-start: #e0393b;
+    --dial-end: #7c3aed;
+
+    --shadow-soft: 0 12px 28px -10px rgba(66, 38, 20, 0.16);
+    --shadow-chassis: 0 30px 60px -20px rgba(16, 24, 38, 0.45);
+
+    --r-lg: 12px;
+    --r-xl: 20px;
+    --r-2xl: 24px;
+    --r-pill: 999px;
+
+    --font-display: "Outfit", -apple-system, "Segoe UI", sans-serif;
+    --font-body: "Satoshi", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --canvas: #1c1410;
+      --surface: #2a2019;
+      --surface-2: #241b15;
+      --ink: #f6ede2;
+      --slate: #b3a494;
+      --hairline: #3c2f24;
+      --action-primary: #ff7a52;
+      --accent-violet: #d68a63;
+      --pace-teal: #4fc773;
+      --pace-gold: #f0bc5c;
+      --pace-berry: #ff5c5c;
+      --dial-start: #ff5c5c;
+      --dial-end: #a166f5;
+      --shadow-soft: 0 12px 28px -10px rgba(0, 0, 0, 0.45);
+      color-scheme: dark;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --canvas: #1c1410;
+    --surface: #2a2019;
+    --surface-2: #241b15;
+    --ink: #f6ede2;
+    --slate: #b3a494;
+    --hairline: #3c2f24;
+    --action-primary: #ff7a52;
+    --accent-violet: #d68a63;
+    --pace-teal: #4fc773;
+    --pace-gold: #f0bc5c;
+    --pace-berry: #ff5c5c;
+    --dial-start: #ff5c5c;
+    --dial-end: #a166f5;
+    --shadow-soft: 0 12px 28px -10px rgba(0, 0, 0, 0.45);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; scrollbar-width: thin; }
+
+  body {
+    margin: 0;
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow-y: auto;
+  }
+
+  ::selection { background: color-mix(in srgb, var(--action-primary) 30%, transparent); }
+
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  a { color: inherit; }
+
+  h1, h2, h3, h4 { font-family: var(--font-display); margin: 0; text-wrap: balance; }
+
+  code, .mono {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.9em;
+  }
+
+  /* ---------- shell layout ---------- */
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 28px;
+    background: color-mix(in srgb, var(--canvas) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .topbar-brand {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 15px;
+  }
+  .topbar-brand .dot { color: var(--action-primary); }
+  .topbar-brand .ver {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--slate);
+    background: var(--surface-2);
+    border: 1px solid var(--hairline);
+    padding: 2px 7px;
+    border-radius: var(--r-pill);
+  }
+
+  .theme-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-pill);
+    padding: 4px;
+    box-shadow: var(--shadow-soft);
+  }
+  .theme-toggle button {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: var(--slate);
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: var(--r-pill);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .theme-toggle button.active {
+    background: var(--action-primary);
+    color: white;
+  }
+  .theme-toggle button:focus-visible,
+  a:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--action-primary);
+    outline-offset: 2px;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 208px minmax(0, 1fr);
+    gap: 0;
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+
+  nav.toc {
+    position: sticky;
+    top: 61px;
+    align-self: start;
+    padding: 40px 12px 40px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: calc(100vh - 61px);
+    overflow-y: auto;
+  }
+  nav.toc a {
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--slate);
+    padding: 7px 10px;
+    border-radius: 8px;
+    transition: background 0.15s, color 0.15s;
+  }
+  nav.toc a:hover { background: var(--surface-2); color: var(--ink); }
+  nav.toc .toc-num { font-variant-numeric: tabular-nums; opacity: 0.6; margin-right: 6px; }
+
+  main { padding: 40px 32px 120px; min-width: 0; }
+
+  .intro {
+    max-width: 640px;
+    margin-bottom: 56px;
+  }
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--action-primary);
+    margin: 0 0 10px;
+  }
+  .intro h1 { font-size: 34px; font-weight: 600; letter-spacing: -0.01em; }
+  .intro p { font-size: 15px; color: var(--slate); margin: 14px 0 0; max-width: 58ch; }
+
+  section.block { margin-bottom: 64px; scroll-margin-top: 76px; }
+  section.block > h2 {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--slate);
+    padding-bottom: 12px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .block-title {
+    font-family: var(--font-display);
+    font-size: 21px;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0 0 6px;
+  }
+  .block-desc { font-size: 13.5px; color: var(--slate); max-width: 60ch; margin: 0 0 24px; line-height: 1.6; }
+
+  .card {
+    background: var(--surface);
+    border-radius: var(--r-xl);
+    box-shadow: var(--shadow-soft);
+    padding: 20px;
+  }
+
+  .note {
+    font-size: 12.5px;
+    color: var(--slate);
+    background: var(--surface-2);
+    border-left: 2px solid var(--action-primary);
+    padding: 10px 14px;
+    border-radius: 0 8px 8px 0;
+    margin-top: 16px;
+    line-height: 1.6;
+  }
+  .note b { color: var(--ink); }
+
+  /* ---------- color swatches ---------- */
+
+  .swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+    gap: 14px;
+  }
+  .swatch {
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    border: 1px solid var(--hairline);
+    background: var(--surface);
+  }
+  .swatch-fill { height: 68px; }
+  .swatch-meta { padding: 9px 11px; }
+  .swatch-name { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+  .swatch-hex { font-size: 11px; color: var(--slate); font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .swatch-use { font-size: 10.5px; color: var(--slate); margin-top: 4px; line-height: 1.4; }
+
+  .subgroup-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--slate);
+    margin: 28px 0 12px;
+  }
+  .subgroup-label:first-child { margin-top: 0; }
+
+  .gradient-row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .gradient-swatch {
+    flex: 1;
+    min-width: 220px;
+    height: 68px;
+    border-radius: var(--r-lg);
+    border: 1px solid var(--hairline);
+    display: flex;
+    align-items: flex-end;
+    padding: 10px 12px;
+    font-size: 11px;
+    color: white;
+    font-weight: 600;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.35);
+  }
+
+  /* ---------- type ---------- */
+
+  .type-row {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 20px;
+    align-items: baseline;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .type-row:last-child { border-bottom: none; }
+  .type-meta { font-size: 11px; color: var(--slate); line-height: 1.6; }
+  .type-meta .px { font-weight: 700; color: var(--ink); font-size: 12px; display: block; margin-bottom: 2px; }
+  .type-sample { color: var(--ink); overflow-wrap: anywhere; }
+
+  .face-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px; }
+  .face-card { padding: 22px; }
+  .face-card .glyphs { font-family: var(--font-display); font-size: 40px; font-weight: 600; margin-bottom: 10px; }
+  .face-card.body .glyphs { font-family: var(--font-body); font-weight: 500; }
+  .face-card .face-name { font-size: 13px; font-weight: 700; color: var(--ink); }
+  .face-card .face-role { font-size: 11.5px; color: var(--slate); margin-top: 2px; }
+
+  /* ---------- spacing / radius ---------- */
+
+  .radius-row { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-end; }
+  .radius-item { text-align: center; }
+  .radius-box {
+    width: 84px;
+    height: 84px;
+    background: var(--surface-2);
+    border: 1.5px dashed color-mix(in srgb, var(--action-primary) 45%, transparent);
+  }
+  .radius-item .lbl { font-size: 11px; color: var(--slate); margin-top: 8px; }
+  .radius-item .lbl b { color: var(--ink); display: block; font-size: 12px; }
+
+  .space-scale { display: flex; align-items: flex-end; gap: 10px; }
+  .space-bar { background: var(--action-primary); border-radius: 3px 3px 0 0; width: 22px; }
+  .space-item { display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 10.5px; color: var(--slate); }
+
+  .elevation-row { display: flex; gap: 24px; flex-wrap: wrap; }
+  .elevation-item { text-align: center; }
+  .elevation-box {
+    width: 140px;
+    height: 90px;
+    background: var(--surface);
+    border-radius: var(--r-xl);
+  }
+  .elevation-item .lbl { font-size: 11.5px; color: var(--slate); margin-top: 12px; }
+  .elevation-item .lbl b { color: var(--ink); display: block; font-size: 12.5px; margin-bottom: 2px; }
+
+  /* ---------- component demos ---------- */
+
+  .demo {
+    background: var(--surface);
+    border-radius: var(--r-xl);
+    box-shadow: var(--shadow-soft);
+    padding: 24px;
+  }
+  .demo-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--slate);
+    margin-bottom: 16px;
+  }
+  .demo + .demo { margin-top: 18px; }
+  .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .col { display: flex; flex-direction: column; gap: 10px; }
+
+  /* buttons */
+  .btn {
+    appearance: none;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-radius: var(--r-pill);
+    padding: 13px 24px;
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 500;
+    transition: transform 0.12s ease;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--action-primary); color: white; box-shadow: var(--shadow-soft); }
+  .btn-secondary { background: var(--surface); color: var(--ink); border: 1px solid var(--hairline); }
+  .btn-ghost { background: transparent; color: var(--slate); }
+
+  /* chip */
+  .chip {
+    appearance: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: var(--r-pill);
+    border: 1px solid var(--hairline);
+    background: var(--surface);
+    color: var(--ink);
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: var(--font-body);
+    transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.12s;
+  }
+  .chip:active { transform: scale(0.96); }
+  .chip.selected { background: var(--action-primary); border-color: var(--action-primary); color: white; }
+  .chip.dashed { border-style: dashed; }
+
+  /* stat tile */
+  .stat-tile {
+    border-radius: var(--r-lg);
+    padding: 12px 13px;
+    box-shadow: var(--shadow-soft);
+    flex: 1;
+    min-width: 110px;
+  }
+  .stat-tile .lbl { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; color: var(--slate); }
+  .stat-tile .val { font-family: var(--font-display); font-size: 19px; font-weight: 600; margin-top: 3px; }
+
+  /* streak chip */
+  .streak-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: var(--r-pill);
+    padding: 5px 11px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .streak-chip.on { background: color-mix(in srgb, var(--pace-teal) 15%, var(--surface)); color: var(--pace-teal); }
+  .streak-chip.off { background: var(--hairline); color: var(--slate); opacity: 0.7; }
+
+  /* section/row card */
+  .section-card { border-radius: var(--r-2xl); background: var(--surface); box-shadow: var(--shadow-soft); overflow: hidden; }
+  .section-card .stitle { padding: 12px 16px 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--slate); }
+  .section-card .srow { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; border-top: 1px solid var(--hairline); }
+  .section-card .srow .rl { font-size: 14px; font-weight: 500; }
+  .section-card .srow .rs { font-size: 12px; color: var(--slate); margin-top: 1px; }
+  .section-card .dot { width: 8px; height: 8px; border-radius: 999px; background: var(--action-primary); }
+
+  /* badge / achievement hex */
+  .badge-grid { display: flex; gap: 18px; flex-wrap: wrap; }
+  .badge { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 68px; }
+  .badge .hex {
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    color: white;
+  }
+  .badge .hex.unlocked { background: linear-gradient(155deg, var(--action-primary), var(--pace-gold)); box-shadow: var(--shadow-soft); }
+  .badge .hex.locked { background: var(--hairline); color: var(--slate); opacity: 0.6; }
+  .badge .hex.selected { outline: 2px solid var(--action-primary); outline-offset: 2px; }
+  .badge .blabel { font-size: 10px; font-weight: 600; text-align: center; line-height: 1.3; }
+  .badge .bstate { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--pace-teal); }
+  .badge .bstate.locked-txt { color: var(--slate); opacity: 0.6; }
+
+  /* toast */
+  .toast {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    border-radius: 16px;
+    box-shadow: var(--shadow-soft);
+    padding: 12px 16px;
+    max-width: 360px;
+  }
+  .toast .ic {
+    width: 40px; height: 40px; border-radius: 999px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; color: white;
+    background: linear-gradient(155deg, var(--action-primary), var(--pace-gold));
+  }
+  .toast .t1 { font-size: 13px; font-weight: 600; }
+  .toast .t2 { font-size: 12px; color: var(--slate); margin-top: 1px; }
+
+  /* bottom nav */
+  .nav-demo {
+    position: relative;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 10px 16px 16px;
+    border-top: 1px solid var(--hairline);
+    border-radius: 0 0 var(--r-xl) var(--r-xl);
+    background: var(--canvas);
+  }
+  .nav-tab { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--slate); }
+  .nav-tab.active { color: var(--action-primary); }
+  .nav-tab span { font-size: 10.5px; font-weight: 600; }
+  .fab {
+    position: absolute;
+    left: 50%;
+    top: -18px;
+    transform: translateX(-50%);
+    width: 52px;
+    height: 52px;
+    border-radius: 999px;
+    background: var(--action-primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-soft);
+    border: 4px solid var(--canvas);
+  }
+
+  .pill-tag {
+    display: inline-block;
+    font-size: 10.5px;
+    font-weight: 700;
+    background: var(--surface-2);
+    color: var(--slate);
+    padding: 2px 8px;
+    border-radius: var(--r-pill);
+    font-family: ui-monospace, monospace;
+  }
+
+  footer {
+    max-width: 640px;
+    padding-top: 24px;
+    border-top: 1px solid var(--hairline);
+    font-size: 12px;
+    color: var(--slate);
+    line-height: 1.7;
+  }
+
+  /*
+   * Breakpoints are duplicated two ways on purpose:
+   *   1) standard @media queries, for normal browser use.
+   *   2) [data-bp] attribute rules, driven by a ResizeObserver in the
+   *      script below that watches this document's own rendered width.
+   * Framer's Embed layer sometimes hosts this page in an iframe whose
+   * box size changes without reliably re-running @media (it depends on
+   * how the layer's width is configured — see the HTML comment at the
+   * top of this file). The ResizeObserver path reacts to the iframe's
+   * actual box directly, so layout still adapts even in that case.
+   * Both paths set identical rules, so there's no conflict — only redundancy.
+   */
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+    nav.toc { display: none; }
+    main { padding: 28px 20px 100px; }
+    .face-pair { grid-template-columns: 1fr; }
+    .type-row { grid-template-columns: 1fr; gap: 6px; }
+  }
+
+  @media (max-width: 640px) {
+    .topbar { padding: 12px 16px; flex-wrap: wrap; row-gap: 8px; }
+    .intro h1 { font-size: 27px; }
+    .intro p { font-size: 14px; }
+    main { padding: 24px 16px 90px; }
+    .swatch-grid { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+    .card, .demo { padding: 16px; }
+    .radius-row, .elevation-row { gap: 14px; }
+    .gradient-row { gap: 10px; }
+    .gradient-swatch { min-width: 160px; }
+    .badge-grid { gap: 12px; }
+    .badge { width: 60px; }
+  }
+
+  @media (max-width: 420px) {
+    .topbar { padding: 10px 14px; }
+    .topbar-brand { font-size: 13px; }
+    .topbar-brand .ver { display: none; }
+    .theme-toggle button { padding: 5px 9px; font-size: 11px; }
+    .eyebrow { font-size: 10px; }
+    .intro h1 { font-size: 22px; }
+    section.block > h2 { font-size: 11px; }
+    .block-title { font-size: 18px; }
+    .swatch-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+    .swatch-fill { height: 56px; }
+    .face-pair { gap: 10px; }
+    .face-card { padding: 16px; }
+    .face-card .glyphs { font-size: 30px; }
+    .radius-box { width: 64px; height: 64px; }
+    .radius-item .lbl { font-size: 10px; }
+    .elevation-box { width: 108px; height: 74px; }
+    .toast { max-width: 100%; }
+    .card, .demo { padding: 14px; }
+    .row { gap: 8px; }
+    .btn { padding: 11px 18px; font-size: 14px; }
+  }
+
+  html[data-bp="md"] .layout, html[data-bp="sm"] .layout, html[data-bp="xs"] .layout { grid-template-columns: 1fr; }
+  html[data-bp="md"] nav.toc, html[data-bp="sm"] nav.toc, html[data-bp="xs"] nav.toc { display: none; }
+  html[data-bp="md"] main, html[data-bp="sm"] main, html[data-bp="xs"] main { padding: 28px 20px 100px; }
+  html[data-bp="md"] .face-pair, html[data-bp="sm"] .face-pair, html[data-bp="xs"] .face-pair { grid-template-columns: 1fr; }
+  html[data-bp="md"] .type-row, html[data-bp="sm"] .type-row, html[data-bp="xs"] .type-row { grid-template-columns: 1fr; gap: 6px; }
+
+  html[data-bp="sm"] .topbar, html[data-bp="xs"] .topbar { padding: 12px 16px; flex-wrap: wrap; row-gap: 8px; }
+  html[data-bp="sm"] .intro h1, html[data-bp="xs"] .intro h1 { font-size: 27px; }
+  html[data-bp="sm"] .intro p, html[data-bp="xs"] .intro p { font-size: 14px; }
+  html[data-bp="sm"] main, html[data-bp="xs"] main { padding: 24px 16px 90px; }
+  html[data-bp="sm"] .swatch-grid, html[data-bp="xs"] .swatch-grid { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+  html[data-bp="sm"] .card, html[data-bp="xs"] .card, html[data-bp="sm"] .demo, html[data-bp="xs"] .demo { padding: 16px; }
+  html[data-bp="sm"] .radius-row, html[data-bp="xs"] .radius-row, html[data-bp="sm"] .elevation-row, html[data-bp="xs"] .elevation-row { gap: 14px; }
+  html[data-bp="sm"] .gradient-row, html[data-bp="xs"] .gradient-row { gap: 10px; }
+  html[data-bp="sm"] .gradient-swatch, html[data-bp="xs"] .gradient-swatch { min-width: 160px; }
+  html[data-bp="sm"] .badge-grid, html[data-bp="xs"] .badge-grid { gap: 12px; }
+  html[data-bp="sm"] .badge, html[data-bp="xs"] .badge { width: 60px; }
+
+  html[data-bp="xs"] .topbar { padding: 10px 14px; }
+  html[data-bp="xs"] .topbar-brand { font-size: 13px; }
+  html[data-bp="xs"] .topbar-brand .ver { display: none; }
+  html[data-bp="xs"] .theme-toggle button { padding: 5px 9px; font-size: 11px; }
+  html[data-bp="xs"] .eyebrow { font-size: 10px; }
+  html[data-bp="xs"] .intro h1 { font-size: 22px; }
+  html[data-bp="xs"] section.block > h2 { font-size: 11px; }
+  html[data-bp="xs"] .block-title { font-size: 18px; }
+  html[data-bp="xs"] .swatch-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+  html[data-bp="xs"] .swatch-fill { height: 56px; }
+  html[data-bp="xs"] .face-pair { gap: 10px; }
+  html[data-bp="xs"] .face-card { padding: 16px; }
+  html[data-bp="xs"] .face-card .glyphs { font-size: 30px; }
+  html[data-bp="xs"] .radius-box { width: 64px; height: 64px; }
+  html[data-bp="xs"] .radius-item .lbl { font-size: 10px; }
+  html[data-bp="xs"] .elevation-box { width: 108px; height: 74px; }
+  html[data-bp="xs"] .toast { max-width: 100%; }
+  html[data-bp="xs"] .card, html[data-bp="xs"] .demo { padding: 14px; }
+  html[data-bp="xs"] .row { gap: 8px; }
+  html[data-bp="xs"] .btn { padding: 11px 18px; font-size: 14px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand"><span class="dot">✦</span> Runway <span class="ver">Design System</span></div>
+  <div class="theme-toggle" role="group" aria-label="Theme preview">
+    <button type="button" data-theme-btn="light">Light</button>
+    <button type="button" data-theme-btn="dark">Dark</button>
+    <button type="button" data-theme-btn="" class="active">Auto</button>
+  </div>
+</div>
+
+<div class="layout">
+  <nav class="toc" aria-label="Sections">
+    <a href="#color"><span class="toc-num">01</span>Color</a>
+    <a href="#type"><span class="toc-num">02</span>Typography</a>
+    <a href="#space"><span class="toc-num">03</span>Spacing &amp; radius</a>
+    <a href="#elevation"><span class="toc-num">04</span>Elevation</a>
+    <a href="#components"><span class="toc-num">05</span>Components</a>
+  </nav>
+
+  <main>
+    <div class="intro">
+      <p class="eyebrow">Reference · v1</p>
+      <h1>Runway Design System</h1>
+      <p>
+        The visual language behind Runway, a mobile-first trip-budget-pacing app. Warm canvas
+        neutrals, one coral action color, and a dedicated teal/gold/berry pace ramp that stays
+        deliberately separate from the brand color — so "on pace" never gets confused with "the
+        button you tap." Every token below is pulled directly from <code>globals.css</code>,
+        <code>tokens.ts</code>, and <code>tailwind.config.js</code>.
+      </p>
+    </div>
+
+    <!-- 01 COLOR -->
+    <section class="block" id="color">
+      <h2>01 · Color</h2>
+      <p class="block-title">Palette</p>
+      <p class="block-desc">Four families, each with a distinct job. Neutrals build surfaces, coral drives action, pace colors carry meaning, categories only ever label spending.</p>
+
+      <div class="card">
+        <p class="subgroup-label">Neutrals</p>
+        <div class="swatch-grid">
+          <div class="swatch"><div class="swatch-fill" style="background:var(--canvas)"></div><div class="swatch-meta"><div class="swatch-name">Canvas</div><div class="swatch-hex">--canvas</div><div class="swatch-use">App background</div></div></div>
+          <div class="swatch"><div class="swatch-fill" style="background:var(--surface)"></div><div class="swatch-meta"><div class="swatch-name">Surface</div><div class="swatch-hex">--surface</div><div class="swatch-use">Cards, sheets, tiles</div></div></div>
+          <div class="swatch"><div class="swatch-fill" style="background:var(--ink)"></div><div class="swatch-meta"><div class="swatch-name">Ink</div><div class="swatch-hex">--ink</div><div class="swatch-use">Primary text</div></div></div>
+          <div class="swatch"><div class="swatch-fill" style="background:var(--slate)"></div><div class="swatch-meta"><div class="swatch-name">Slate</div><div class="swatch-hex">--slate</div><div class="swatch-use">Secondary text</div></div></div>
+          <div class="swatch"><div class="swatch-fill" style="background:var(--hairline)"></div><div class="swatch-meta"><div class="swatch-name">Hairline</div><div class="swatch-hex">--hairline</div><div class="swatch-use">Borders, dividers</div></div></div>
+        </div>
+
+        <p class="subgroup-label">Brand &amp; action</p>
+        <div class="swatch-grid">
+          <div class="swatch"><div class="swatch-fill" style="background:var(--action-primary)"></div><div class="swatch-meta"><div class="swatch-name">Action primary</div><div class="swatch-hex">--action-primary</div><div class="swatch-use">CTAs, FAB, links, focus</div></div></div>
+          <div class="swatch"><div class="swatch-fill" style="background:var(--accent-violet)"></div><div class="swatch-meta"><div class="swatch-name">Accent violet</div><div class="swatch-hex">--accent-violet</div><div class="swatch-use">Secondary accent</div></div></div>
+        </div>
+
+        <p class="subgroup-label">Pace semantics — never the brand color</p>
+        <div class="swatch-grid">
+          <div class="swatch"><div class="swatch-fill" style="background:var(--pace-teal)"></div><div class="swatch-meta"><div class="swatch-name">Teal · onPace</div><div class="swatch-hex">--pace-teal</div><div class="swatch-use">Spending on track</div></div></div>
+          <div class="swatch"><div class="swatch-fill" style="background:var(--pace-gold)"></div><div class="swatch-meta"><div class="swatch-name">Gold · tight</div><div class="swatch-hex">--pace-gold</div><div class="swatch-use">Close to the line</div></div></div>
+          <div class="swatch"><div class="swatch-fill" style="background:var(--pace-berry)"></div><div class="swatch-meta"><div class="swatch-name">Berry · over</div><div class="swatch-hex">--pace-berry</div><div class="swatch-use">Over budget</div></div></div>
+        </div>
+        <div class="note"><b>Rule:</b> pace color communicates budget status only. It is a separate palette from <span class="pill-tag">--action-primary</span> — don't reach for coral to mean "on pace," and don't reach for teal to mean "primary action."</div>
+
+        <p class="subgroup-label">Category palette</p>
+        <div class="swatch-grid">
+          <div class="swatch"><div class="swatch-fill" style="background:var(--cat-1)"></div><div class="swatch-meta"><div class="swatch-name">Marigold</div><div class="swatch-hex">--category-1</div></div></div>
+          <div class="swatch"><div class="swatch-fill" style="background:var(--cat-2)"></div><div class="swatch-meta"><div class="swatch-name">Coral terracotta</div><div class="swatch-hex">--category-2</div></div></div>
+          <div class="swatch"><div class="swatch-fill" style="background:var(--cat-3)"></div><div class="swatch-meta"><div class="swatch-name">Rust</div><div class="swatch-hex">--category-3</div></div></div>
+          <div class="swatch"><div class="swatch-fill" style="background:var(--cat-4)"></div><div class="swatch-meta"><div class="swatch-name">Mustard</div><div class="swatch-hex">--category-4</div></div></div>
+          <div class="swatch"><div class="swatch-fill" style="background:var(--cat-5)"></div><div class="swatch-meta"><div class="swatch-name">Clay rose</div><div class="swatch-hex">--category-5</div></div></div>
+          <div class="swatch"><div class="swatch-fill" style="background:var(--cat-6)"></div><div class="swatch-meta"><div class="swatch-name">Warm taupe</div><div class="swatch-hex">--category-6</div></div></div>
+        </div>
+
+        <p class="subgroup-label">Dial gradient &amp; badge gradient</p>
+        <div class="gradient-row">
+          <div class="gradient-swatch" style="background:linear-gradient(135deg, var(--dial-start), var(--dial-end))">Pace dial fill · --dial-grad-start → --dial-grad-end</div>
+          <div class="gradient-swatch" style="background:linear-gradient(155deg, var(--action-primary), var(--pace-gold))">Achievement badge · action-primary → pace-gold</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 TYPE -->
+    <section class="block" id="type">
+      <h2>02 · Typography</h2>
+      <p class="block-title">Typefaces</p>
+      <p class="block-desc">Two families split by role: a geometric display face for headlines and numbers that need presence, a workhorse body face for everything you read in a hurry.</p>
+
+      <div class="face-pair">
+        <div class="card face-card">
+          <div class="glyphs">Aa 12:40</div>
+          <div class="face-name">Outfit — display</div>
+          <div class="face-role">Page titles, stat values, dial center, hero numbers</div>
+        </div>
+        <div class="card face-card body">
+          <div class="glyphs">Aa 12:40</div>
+          <div class="face-name">Satoshi — body</div>
+          <div class="face-role">Default UI text, labels, buttons, inputs</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="subgroup-label">Scale</p>
+        <div class="type-row"><div class="type-meta"><span class="px">32 / 600</span>display</div><div class="type-sample" style="font-family:var(--font-display);font-size:32px;font-weight:600;">Welcome to Runway</div></div>
+        <div class="type-row"><div class="type-meta"><span class="px">26 / 600</span>display</div><div class="type-sample tabular" style="font-family:var(--font-display);font-size:26px;font-weight:600;">$1,240 left</div></div>
+        <div class="type-row"><div class="type-meta"><span class="px">20 / 700</span>display</div><div class="type-sample" style="font-family:var(--font-display);font-size:20px;font-weight:700;">Account</div></div>
+        <div class="type-row"><div class="type-meta"><span class="px">17 / 600</span>display</div><div class="type-sample" style="font-family:var(--font-display);font-size:17px;font-weight:600;">Edit budget</div></div>
+        <div class="type-row"><div class="type-meta"><span class="px">15 / 500</span>body</div><div class="type-sample" style="font-size:15px;font-weight:500;">Log an expense…</div></div>
+        <div class="type-row"><div class="type-meta"><span class="px">14 / 500</span>body</div><div class="type-sample" style="font-size:14px;font-weight:500;">Bali getaway · Active trip</div></div>
+        <div class="type-row"><div class="type-meta"><span class="px">13 / 400</span>body</div><div class="type-sample" style="font-size:13px;">of $2,400 spent</div></div>
+        <div class="type-row"><div class="type-meta"><span class="px">12 / 500</span>caption</div><div class="type-sample tabular" style="font-size:12px;font-weight:500;color:var(--slate)">9 Aug 2026</div></div>
+        <div class="type-row"><div class="type-meta"><span class="px">11 / 700</span>eyebrow</div><div class="type-sample" style="font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--slate)">Badges</div></div>
+      </div>
+      <div class="note"><b>Numerals:</b> any digits that line up — spent/budget lines, dates, streak counts — use <span class="pill-tag">.tabular</span> (<code>font-variant-numeric: tabular-nums</code>) so columns don't jitter as values change.</div>
+    </section>
+
+    <!-- 03 SPACE -->
+    <section class="block" id="space">
+      <h2>03 · Spacing &amp; radius</h2>
+      <p class="block-title">Radius scale</p>
+      <p class="block-desc">Four steps, each mapped to a Tailwind alias. Pills are reserved for anything tappable and round; 2xl is the largest surface a card gets.</p>
+      <div class="card">
+        <div class="radius-row">
+          <div class="radius-item"><div class="radius-box" style="border-radius:var(--r-lg)"></div><div class="lbl"><b>lg</b>12px · inputs, tiles</div></div>
+          <div class="radius-item"><div class="radius-box" style="border-radius:var(--r-xl)"></div><div class="lbl"><b>xl</b>20px · cards, dials</div></div>
+          <div class="radius-item"><div class="radius-box" style="border-radius:var(--r-2xl)"></div><div class="lbl"><b>2xl</b>24px · section cards</div></div>
+          <div class="radius-item"><div class="radius-box" style="border-radius:var(--r-pill);width:120px"></div><div class="lbl"><b>pill</b>999px · buttons, chips, nav</div></div>
+        </div>
+      </div>
+
+      <p class="block-title" style="margin-top:28px">Spacing rhythm</p>
+      <p class="block-desc">Layout runs on Tailwind's 4px scale. Screens sit on <span class="pill-tag">px-5</span> horizontal margins; cards stack content in <span class="pill-tag">px-4 py-3</span> rows; tight clusters (icon + label) use <span class="pill-tag">gap-1.5 to gap-2</span>.</p>
+      <div class="card">
+        <div class="space-scale">
+          <div class="space-item"><div class="space-bar" style="height:8px"></div>8px</div>
+          <div class="space-item"><div class="space-bar" style="height:12px"></div>12px</div>
+          <div class="space-item"><div class="space-bar" style="height:16px"></div>16px</div>
+          <div class="space-item"><div class="space-bar" style="height:20px"></div>20px</div>
+          <div class="space-item"><div class="space-bar" style="height:24px"></div>24px</div>
+          <div class="space-item"><div class="space-bar" style="height:32px"></div>32px</div>
+          <div class="space-item"><div class="space-bar" style="height:40px"></div>40px</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 ELEVATION -->
+    <section class="block" id="elevation">
+      <h2>04 · Elevation</h2>
+      <p class="block-title">Shadows</p>
+      <p class="block-desc">Just two. <span class="pill-tag">soft</span> lifts nearly everything off the canvas; <span class="pill-tag">chassis</span> is reserved for the decorative desktop phone frame.</p>
+      <div class="card">
+        <div class="elevation-row">
+          <div class="elevation-item"><div class="elevation-box" style="box-shadow:var(--shadow-soft)"></div><div class="lbl"><b>shadow-soft</b>0 12px 28px -10px, warm ink @ 16%</div></div>
+          <div class="elevation-item"><div class="elevation-box" style="box-shadow:var(--shadow-chassis)"></div><div class="lbl"><b>shadow-chassis</b>0 30px 60px -20px, deep @ 45%</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 05 COMPONENTS -->
+    <section class="block" id="components">
+      <h2>05 · Components</h2>
+      <p class="block-title">Buttons</p>
+      <p class="block-desc">One primary action per screen. Secondary is an outline, ghost drops the chrome entirely for tertiary exits.</p>
+      <div class="demo">
+        <div class="row">
+          <button class="btn btn-primary">Save expense</button>
+          <button class="btn btn-secondary">Cancel</button>
+          <button class="btn btn-ghost">Skip for now</button>
+        </div>
+      </div>
+
+      <p class="block-title" style="margin-top:32px">Chips</p>
+      <p class="block-desc">Category filters and quick picks. Selected state swaps fill for the action color; dashed marks an "add new" affordance.</p>
+      <div class="demo">
+        <div class="row">
+          <button class="chip selected">Food &amp; drink</button>
+          <button class="chip">Transport</button>
+          <button class="chip">Lodging</button>
+          <button class="chip dashed">+ New category</button>
+        </div>
+      </div>
+
+      <p class="block-title" style="margin-top:32px">Stat tiles</p>
+      <p class="block-desc">Compact metric cards, optionally tinted toward a semantic color at 16% mix into the surface.</p>
+      <div class="demo">
+        <div class="row">
+          <div class="stat-tile"><div class="lbl">Spent</div><div class="val tabular">$860</div></div>
+          <div class="stat-tile" style="background:color-mix(in srgb, var(--pace-teal) 16%, var(--surface))"><div class="lbl">On pace</div><div class="val tabular" style="color:var(--pace-teal)">+$40</div></div>
+          <div class="stat-tile" style="background:color-mix(in srgb, var(--pace-berry) 16%, var(--surface))"><div class="lbl">Days left</div><div class="val tabular" style="color:var(--pace-berry)">3</div></div>
+        </div>
+      </div>
+
+      <p class="block-title" style="margin-top:32px">Streak chip</p>
+      <p class="block-desc">Always rendered, even at zero — it dims to neutral rather than disappearing, so its position on screen never shifts.</p>
+      <div class="demo">
+        <div class="row">
+          <span class="streak-chip on">🔥 5</span>
+          <span class="streak-chip off">🔥 0</span>
+        </div>
+      </div>
+
+      <p class="block-title" style="margin-top:32px">Section / row card</p>
+      <p class="block-desc">The Account screen's list pattern: an uppercase label, then hairline-divided rows.</p>
+      <div class="demo">
+        <div class="section-card">
+          <p class="stitle">Trips</p>
+          <div class="srow"><span><span class="rl" style="display:block">Bali getaway</span><span class="rs">Active trip</span></span><span class="dot"></span></div>
+          <div class="srow"><span><span class="rl" style="display:block">Lisbon, Oct</span><span class="rs">Upcoming · starts 12 Oct</span></span></div>
+        </div>
+      </div>
+
+      <p class="block-title" style="margin-top:32px">Achievement badges</p>
+      <p class="block-desc">A hexagon clip-path tile: gradient fill and full-color icon when unlocked, flat hairline fill with a lock glyph when not. Tap toggles a caption below the grid — try it.</p>
+      <div class="demo">
+        <div class="badge-grid" id="badgeDemo">
+          <div class="badge" data-badge="0"><div class="hex unlocked">★</div><div class="blabel">First log</div><div class="bstate">Earned</div></div>
+          <div class="badge" data-badge="1"><div class="hex unlocked">🔥</div><div class="blabel">3-day streak</div><div class="bstate">Earned</div></div>
+          <div class="badge" data-badge="2"><div class="hex locked">🔒</div><div class="blabel">Multi-tripper</div><div class="bstate locked-txt">Locked</div></div>
+          <div class="badge" data-badge="3"><div class="hex locked">🔒</div><div class="blabel">Never overshot</div><div class="bstate locked-txt">Locked</div></div>
+        </div>
+        <div class="note" id="badgeCaption" style="display:none"></div>
+      </div>
+
+      <p class="block-title" style="margin-top:32px">Toast</p>
+      <p class="block-desc">Achievement and milestone toasts share one shape — an icon chip plus a two-line message, auto-dismissing after ~3s, mounted above every route so it survives navigation.</p>
+      <div class="demo">
+        <div class="toast">
+          <span class="ic">★</span>
+          <span><span class="t1" style="display:block">New badge unlocked!</span><span class="t2">First log</span></span>
+        </div>
+      </div>
+
+      <p class="block-title" style="margin-top:32px">Bottom nav</p>
+      <p class="block-desc">Four tabs with a raised center FAB for the primary "log expense" action, ringed in canvas so it visually floats off the bar.</p>
+      <div class="demo" style="padding-top:36px">
+        <div class="nav-demo">
+          <span class="nav-tab active">◐<span>Home</span></span>
+          <span class="nav-tab">◔<span>Trend</span></span>
+          <span class="fab">+</span>
+          <span class="nav-tab" style="width:1px"></span>
+          <span class="nav-tab">◒<span>Search</span></span>
+          <span class="nav-tab">◑<span>Account</span></span>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      Tokens sourced from <code>src/styles/globals.css</code>, <code>src/theme/tokens.ts</code>, and <code>tailwind.config.js</code>. Changing the palette means editing all three in lockstep — plus <code>Celebration.tsx</code>, the one place pace colors are referenced as raw CSS-var strings instead of Tailwind classes.
+    </footer>
+  </main>
+</div>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+
+    function bpFor(w) {
+      if (w <= 420) return "xs";
+      if (w <= 640) return "sm";
+      if (w <= 860) return "md";
+      return "lg";
+    }
+    if (typeof ResizeObserver !== "undefined") {
+      var ro = new ResizeObserver(function (entries) {
+        var w = entries[0].contentRect.width;
+        root.setAttribute("data-bp", bpFor(w));
+      });
+      ro.observe(root);
+    } else {
+      window.addEventListener("resize", function () {
+        root.setAttribute("data-bp", bpFor(window.innerWidth));
+      });
+    }
+
+    function updateHexLabels() {
+      document.querySelectorAll(".swatch").forEach(function (sw) {
+        var fill = sw.querySelector(".swatch-fill");
+        var hexEl = sw.querySelector(".swatch-hex");
+        if (!fill || !hexEl) return;
+        var m = (fill.getAttribute("style") || "").match(/var\((--[a-z0-9-]+)\)/i);
+        if (!m) return;
+        if (!hexEl.dataset.base) hexEl.dataset.base = hexEl.textContent.trim();
+        var raw = getComputedStyle(root).getPropertyValue(m[1]).trim();
+        hexEl.textContent = hexEl.dataset.base + " · " + raw.toUpperCase();
+      });
+    }
+
+    var buttons = document.querySelectorAll("[data-theme-btn]");
+    buttons.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var val = btn.getAttribute("data-theme-btn");
+        if (val) { root.setAttribute("data-theme", val); } else { root.removeAttribute("data-theme"); }
+        buttons.forEach(function (b) { b.classList.toggle("active", b === btn); });
+        updateHexLabels();
+      });
+    });
+    updateHexLabels();
+
+    var badges = document.querySelectorAll("#badgeDemo .badge");
+    var captions = [
+      "First log: Log your first expense on any trip.",
+      "3-day streak: Log an expense 3 days in a row.",
+      "Locked — start a second trip.",
+      "Locked — finish every trip without going over budget."
+    ];
+    var captionBox = document.getElementById("badgeCaption");
+    var selected = null;
+    badges.forEach(function (b, i) {
+      b.style.cursor = "pointer";
+      b.addEventListener("click", function () {
+        var hex = b.querySelector(".hex");
+        if (selected === i) {
+          hex.classList.remove("selected");
+          captionBox.style.display = "none";
+          selected = null;
+          return;
+        }
+        badges.forEach(function (o) { o.querySelector(".hex").classList.remove("selected"); });
+        hex.classList.add("selected");
+        captionBox.style.display = "block";
+        captionBox.innerHTML = "<b>" + captions[i].split(":")[0] + ":</b>" + captions[i].split(":").slice(1).join(":");
+        selected = i;
+      });
+    });
+  })();
+</script>
+</body>
+</html>

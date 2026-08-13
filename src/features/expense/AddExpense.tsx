@@ -8,7 +8,7 @@ import { Icon, ArrowLeft, Calendar, ChevronRight, categoryIcon, inferCategoryIco
 import { useTripData } from "../../data/useTripData";
 import { effectiveToday, tripCurrencySymbol, tripEndDateISO } from "../../data/calculations";
 import { categoryColor, categoryGradient } from "../../theme/tokens";
-import { formatShortDate } from "../../lib/date";
+import { formatDayMonthYear } from "../../lib/date";
 
 export function AddExpense() {
   const navigate = useNavigate();
@@ -66,9 +66,9 @@ export function AddExpense() {
       </div>
 
       <div className="flex justify-center pt-4">
-        <label className="relative flex items-center gap-2 rounded-pill bg-action-primary/12 px-4 py-2 text-[13px] font-medium text-action-primary">
-          <Icon icon={Calendar} size={15} />
-          {formatShortDate(dateISO)}
+        <label className="relative flex items-center gap-2 rounded-pill border border-[color-mix(in_srgb,var(--action-primary)_30%,transparent)] bg-[color-mix(in_srgb,var(--action-primary)_10%,transparent)] px-4 py-2 text-[13px] font-semibold text-ink">
+          <Icon icon={Calendar} size={15} className="text-action-primary" />
+          {formatDayMonthYear(dateISO)}
           <input
             type="date"
             value={dateISO}

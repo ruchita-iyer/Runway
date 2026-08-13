@@ -1,14 +1,15 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import clsx from "clsx";
 import { AppShell } from "../../layout/AppShell";
 import { BottomNav } from "../../layout/BottomNav";
-import { Icon, Sun, Moon, ChevronRight, Flame, Trophy, Award, Target, Lock } from "../../components/ui/IconIndex";
+import { Icon, Sun, Moon, ChevronRight, Flame, Lock } from "../../components/ui/IconIndex";
 import { useTripData } from "../../data/useTripData";
 import { formatCurrency } from "../../lib/format";
 import { formatShortDate } from "../../lib/date";
+import { ACHIEVEMENT_DEFS, unlockedAchievementIds } from "../../data/achievements";
 import {
   effectiveBudget,
-  isOvershoot,
   longestLoggingStreak,
   loggingStreak,
   totalSpent,
@@ -21,6 +22,7 @@ const XP_PER_LEVEL = 200;
 export function AccountScreen() {
   const navigate = useNavigate();
   const { state, activeTrip, setActiveTrip, toggleDarkMode, startNewTripFlow } = useTripData();
+  const [selectedAchievementId, setSelectedAchievementId] = useState<string | null>(null);
 
   const pastTrips = state.trips.filter((t) => t.status === "complete");
   const currentActiveTrip = activeTrip && activeTrip.status === "active" ? activeTrip : null;
@@ -31,18 +33,14 @@ export function AccountScreen() {
   const totalExpenses = state.trips.reduce((sum, t) => sum + t.expenses.length, 0);
   const bestStreak = state.trips.reduce((max, t) => Math.max(max, longestLoggingStreak(t)), 0);
   const currentStreak = currentActiveTrip ? loggingStreak(currentActiveTrip) : 0;
-  const neverOvershot = state.trips.length > 0 && state.trips.every((t) => !isOvershoot(t));
 
   const xp = totalExpenses * 10 + bestStreak * 15;
   const level = Math.floor(xp / XP_PER_LEVEL) + 1;
   const xpIntoLevel = xp % XP_PER_LEVEL;
 
-  const achievements = [
-    { icon: Award, label: "First log", unlocked: totalExpenses > 0 },
-    { icon: Flame, label: "3-day streak", unlocked: bestStreak >= 3 },
-    { icon: Trophy, label: "Multi-tripper", unlocked: state.trips.length >= 2 },
-    { icon: Target, label: "Never overshot", unlocked: neverOvershot },
-  ];
+  const unlockedIds = unlockedAchievementIds(state);
+  const achievements = ACHIEVEMENT_DEFS.map((a) => ({ ...a, unlocked: unlockedIds.includes(a.id) }));
+  const selectedAchievement = achievements.find((a) => a.id === selectedAchievementId) ?? null;
 
   const challenges = [
     {
@@ -114,42 +112,59 @@ export function AccountScreen() {
         <div className="px-4 py-3">
           <p className="mb-2 text-[12px] font-medium text-slate">Badges</p>
           <div className="grid grid-cols-4 gap-2">
-            {achievements.map((a) => (
-              <div key={a.label} className="flex flex-col items-center gap-1.5 text-center">
-                <span
-                  className={clsx(
-                    "relative flex h-12 w-12 items-center justify-center",
-                    a.unlocked ? "text-white shadow-soft" : "text-slate/50",
-                  )}
-                  style={{
-                    clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)",
-                    background: a.unlocked
-                      ? "linear-gradient(155deg, var(--action-primary), var(--pace-gold))"
-                      : "var(--hairline)",
-                    opacity: a.unlocked ? 1 : 0.5,
-                  }}
+            {achievements.map((a) => {
+              const selected = a.id === selectedAchievementId;
+              return (
+                <button
+                  key={a.id}
+                  onClick={() => setSelectedAchievementId((cur) => (cur === a.id ? null : a.id))}
+                  className="flex flex-col items-center gap-1.5 text-center"
                 >
-                  <Icon icon={a.unlocked ? a.icon : Lock} size={a.unlocked ? 19 : 15} />
-                </span>
-                <span
-                  className={clsx(
-                    "text-[10px] leading-tight",
-                    a.unlocked ? "font-medium text-ink" : "text-slate/60",
-                  )}
-                >
-                  {a.label}
-                </span>
-                <span
-                  className={clsx(
-                    "text-[9px] font-medium uppercase tracking-wide",
-                    a.unlocked ? "text-pace-teal" : "text-slate/50",
-                  )}
-                >
-                  {a.unlocked ? "Earned" : "Locked"}
-                </span>
-              </div>
-            ))}
+                  <span
+                    className={clsx(
+                      "relative flex h-12 w-12 items-center justify-center transition-transform",
+                      a.unlocked ? "text-white shadow-soft" : "text-slate/50",
+                      selected && "scale-110",
+                    )}
+                    style={{
+                      clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)",
+                      background: a.unlocked
+                        ? "linear-gradient(155deg, var(--action-primary), var(--pace-gold))"
+                        : "var(--hairline)",
+                      opacity: a.unlocked ? 1 : 0.5,
+                      outline: selected ? "2px solid var(--action-primary)" : "none",
+                      outlineOffset: 2,
+                    }}
+                  >
+                    <Icon icon={a.unlocked ? a.icon : Lock} size={a.unlocked ? 19 : 15} />
+                  </span>
+                  <span
+                    className={clsx(
+                      "text-[10px] leading-tight",
+                      a.unlocked ? "font-medium text-ink" : "text-slate/60",
+                      selected && "text-action-primary",
+                    )}
+                  >
+                    {a.label}
+                  </span>
+                  <span
+                    className={clsx(
+                      "text-[9px] font-medium uppercase tracking-wide",
+                      a.unlocked ? "text-pace-teal" : "text-slate/50",
+                    )}
+                  >
+                    {a.unlocked ? "Earned" : "Locked"}
+                  </span>
+                </button>
+              );
+            })}
           </div>
+          {selectedAchievement && (
+            <div className="mt-3 rounded-xl bg-canvas px-3 py-2.5 text-[12px] leading-relaxed text-slate">
+              <span className="font-medium text-ink">{selectedAchievement.label}:</span>{" "}
+              {selectedAchievement.unlocked ? selectedAchievement.description : `Locked — ${selectedAchievement.description.charAt(0).toLowerCase()}${selectedAchievement.description.slice(1)}`}
+            </div>
+          )}
         </div>
 
         <div className="px-4 py-3">

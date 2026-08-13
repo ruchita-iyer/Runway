@@ -39,3 +39,10 @@ export function formatShortDate(iso: string): string {
   const d = parseISO(iso);
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
+
+export function formatDayMonthYear(iso: string): string {
+  const d = parseISO(iso);
+  const day = d.getDate();
+  const month = d.toLocaleDateString(undefined, { month: "short" });
+  return `${day} ${month} ${d.getFullYear()}`;
+}

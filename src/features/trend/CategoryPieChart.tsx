@@ -71,22 +71,22 @@ export function CategoryPieChart({
         <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} className="overflow-visible">
           <circle cx={CENTER} cy={CENTER} r={RADIUS} fill="none" stroke="var(--hairline)" strokeWidth={STROKE} strokeOpacity={0.5} />
           {segments.map((s, idx) => (
-            <motion.circle
-              key={s.cat.id}
-              cx={CENTER}
-              cy={CENTER}
-              r={RADIUS}
-              fill="none"
-              stroke={s.color}
-              strokeWidth={STROKE}
-              strokeLinecap="round"
-              strokeDasharray={`${s.arcLen} ${CIRCUMFERENCE - s.arcLen}`}
-              transform={`rotate(${s.startDeg} ${CENTER} ${CENTER})`}
-              initial={{ opacity: 0, scale: 0.85 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, delay: idx * 0.06, ease: [0.22, 1, 0.36, 1] }}
-              style={{ transformOrigin: `${CENTER}px ${CENTER}px` }}
-            />
+            <g key={s.cat.id} transform={`rotate(${s.startDeg} ${CENTER} ${CENTER})`}>
+              <motion.circle
+                cx={CENTER}
+                cy={CENTER}
+                r={RADIUS}
+                fill="none"
+                stroke={s.color}
+                strokeWidth={STROKE}
+                strokeLinecap="round"
+                strokeDasharray={`${s.arcLen} ${CIRCUMFERENCE - s.arcLen}`}
+                initial={{ opacity: 0, scale: 0.85 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: idx * 0.06, ease: [0.22, 1, 0.36, 1] }}
+                style={{ transformOrigin: `${CENTER}px ${CENTER}px` }}
+              />
+            </g>
           ))}
 
           {segments.map((s, idx) => (

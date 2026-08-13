@@ -16,6 +16,7 @@ function emptyState(): AppState {
     darkMode: false,
     seenTutorial: false,
     acknowledgedTripId: null,
+    seenAchievementIds: [],
   };
 }
 

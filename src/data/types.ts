@@ -50,4 +50,6 @@ export interface AppState {
   seenTutorial: boolean;
   /** Trip id the user has dismissed the "Trip complete" celebration for — once acknowledged, Home falls back to the returning-user homepage instead of re-showing the celebration. */
   acknowledgedTripId: string | null;
+  /** Achievement ids the "new badge" toast has already fired for, so unlocking one only notifies once. */
+  seenAchievementIds: string[];
 }

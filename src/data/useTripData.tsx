@@ -4,6 +4,7 @@ import { createId } from "../lib/id";
 import { addDaysISO, todayISO } from "../lib/date";
 import { currentDayNumber, effectiveToday, resolveScreenState, tripDateForDay } from "./calculations";
 import { defaultCategoriesFor, DEFAULT_CATEGORY_DEFS } from "./seedCategories";
+import { unlockedAchievementIds } from "./achievements";
 import { DEFAULT_CURRENCY } from "./currencies";
 import { inferCategoryIcon } from "../components/ui/IconIndex";
 import { loadState, saveState } from "./storage";
@@ -37,6 +38,8 @@ interface TripDataContextValue {
   acknowledgeDayRollover: () => void;
   justCompletedTripId: string | null;
   acknowledgeTripComplete: (tripId: string) => void;
+  newlyUnlockedAchievementId: string | null;
+  dismissAchievementToast: () => void;
   createTrip: (input: NewTripInput) => Trip;
   addCategory: (tripId: string, name: string, icon: string) => Category;
   logExpense: (tripId: string, input: NewExpenseInput) => Expense;
@@ -49,6 +52,7 @@ interface TripDataContextValue {
   lastLoggedExpenseId: string | null;
   clearLastLogged: () => void;
   markOvershootAcknowledged: (tripId: string, choice: "tighten" | "raise", newBudget?: number) => void;
+  updateBudget: (tripId: string, newBudget: number) => void;
   setActiveTrip: (tripId: string) => void;
   finishTrip: (tripId: string) => void;
   setTripDay: (tripId: string, day: number) => void;
@@ -72,10 +76,26 @@ export function TripDataProvider({ children }: { children: ReactNode }) {
   const [justCompletedTripId, setJustCompletedTripId] = useState<string | null>(null);
   const [lastLoggedExpenseId, setLastLoggedExpenseId] = useState<string | null>(null);
   const [, setUndoStack] = useState<string[]>([]);
+  const [achievementQueue, setAchievementQueue] = useState<string[]>([]);
 
   useEffect(() => {
     saveState(state);
   }, [state]);
+
+  // Detect newly-earned achievements whenever trip history changes, queue a toast for each,
+  // and persist them as seen so the same badge never notifies twice.
+  useEffect(() => {
+    const unlocked = unlockedAchievementIds(state);
+    const newlySeen = unlocked.filter((id) => !state.seenAchievementIds.includes(id));
+    if (newlySeen.length === 0) return;
+    setState((s) => ({ ...s, seenAchievementIds: [...s.seenAchievementIds, ...newlySeen] }));
+    setAchievementQueue((q) => [...q, ...newlySeen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.trips]);
+
+  const dismissAchievementToast = useCallback(() => {
+    setAchievementQueue((q) => q.slice(1));
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", state.darkMode);
@@ -267,6 +287,15 @@ export function TripDataProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const updateBudget = useCallback((tripId: string, newBudget: number) => {
+    setState((s) => ({
+      ...s,
+      trips: s.trips.map((t) =>
+        t.id === tripId ? { ...t, totalBudget: newBudget, overshootRaisedBudget: undefined } : t,
+      ),
+    }));
+  }, []);
+
   const setActiveTrip = useCallback((tripId: string) => {
     setState((s) => {
       const trip = s.trips.find((t) => t.id === tripId);
@@ -361,6 +390,7 @@ export function TripDataProvider({ children }: { children: ReactNode }) {
       darkMode: state.darkMode,
       seenTutorial: true,
       acknowledgedTripId: null,
+      seenAchievementIds: [],
     });
   }, [state.darkMode]);
 
@@ -384,6 +414,8 @@ export function TripDataProvider({ children }: { children: ReactNode }) {
     acknowledgeDayRollover,
     justCompletedTripId,
     acknowledgeTripComplete,
+    newlyUnlockedAchievementId: achievementQueue[0] ?? null,
+    dismissAchievementToast,
     createTrip,
     addCategory,
     logExpense,
@@ -393,6 +425,7 @@ export function TripDataProvider({ children }: { children: ReactNode }) {
     lastLoggedExpenseId,
     clearLastLogged,
     markOvershootAcknowledged,
+    updateBudget,
     setActiveTrip,
     finishTrip,
     setTripDay,

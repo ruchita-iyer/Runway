@@ -12,8 +12,9 @@ import { SwipeableRow } from "../../components/ui/SwipeableRow";
 import { UndoBar } from "../expense/UndoBar";
 import { Celebration } from "../expense/Celebration";
 import { DayManageSheet } from "./DayManageSheet";
+import { EditBudgetSheet } from "./EditBudgetSheet";
 import { HamburgerMenu } from "./HamburgerMenu";
-import { Icon, ChevronDown, Menu, categoryIcon } from "../../components/ui/IconIndex";
+import { Icon, ChevronDown, Menu, Pencil, categoryIcon } from "../../components/ui/IconIndex";
 import { useTripData } from "../../data/useTripData";
 import {
   budgetFraction,
@@ -53,6 +54,7 @@ export function HomeActiveDay() {
   const [dropTargetLeft, setDropTargetLeft] = useState<number | null>(null);
   const [dropDirection, setDropDirection] = useState<"in" | "out">("in");
   const [daySheetOpen, setDaySheetOpen] = useState(false);
+  const [budgetSheetOpen, setBudgetSheetOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   const [milestone, setMilestone] = useState<number | null>(null);
@@ -206,6 +208,8 @@ export function HomeActiveDay() {
         onEndTrip={() => navigate("/finish-trip")}
       />
 
+      <EditBudgetSheet trip={activeTrip} open={budgetSheetOpen} onClose={() => setBudgetSheetOpen(false)} />
+
       <HamburgerMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
 
       <div className="flex flex-col items-center gap-4 px-5 pt-6">
@@ -249,8 +253,15 @@ export function HomeActiveDay() {
           className="w-full"
         >
           <div className="flex items-center justify-between text-[12px] text-slate">
-            <span className="tabular">
+            <span className="flex items-center gap-1.5 tabular">
               {formatCurrency(totalSpent(activeTrip), { symbol })} of {formatCurrency(effectiveBudget(activeTrip), { symbol })} spent
+              <button
+                onClick={() => setBudgetSheetOpen(true)}
+                aria-label="Edit budget"
+                className="flex h-5 w-5 items-center justify-center text-slate/70 active:text-action-primary"
+              >
+                <Icon icon={Pencil} size={12} />
+              </button>
             </span>
             <span className="tabular">{Math.round(budgetFraction(activeTrip) * 100)}% used</span>
           </div>

@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<!--
+  Runway — Motion tokens embed
+  Drop-in component for a Framer "Embed" (HTML) layer.
+
+  Usage in Framer:
+    1. Add an Embed component to the canvas.
+    2. Choose "Paste HTML" and paste this entire file's contents.
+    3. Set the layer's height to Fixed, ~420px (scales down gracefully;
+       the component scrolls internally if the frame is shorter).
+    4. Width can be Fill / Fixed — the layout is fluid down to ~360px.
+
+  Self-contained: no external fonts, scripts, or network requests, so it
+  renders identically inside Framer's sandboxed iframe.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Runway — Motion</title>
+<style>
+  :root {
+    --canvas: #fbf3ea;
+    --surface: #ffffff;
+    --surface-2: #f6ede0;
+    --ink: #241c15;
+    --slate: #8f8071;
+    --hairline: #ede1d3;
+    --action-primary: #f2653c;
+    --pace-gold: #e0a337;
+    --shadow-soft: 0 12px 28px -10px rgba(66, 38, 20, 0.16);
+    --r-xl: 20px;
+    --r-pill: 999px;
+    --font-display: "Outfit", -apple-system, "Segoe UI", sans-serif;
+    --font-body: "Satoshi", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color-scheme: light dark;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --canvas: #1c1410;
+      --surface: #2a2019;
+      --surface-2: #241b15;
+      --ink: #f6ede2;
+      --slate: #b3a494;
+      --hairline: #3c2f24;
+      --action-primary: #ff7a52;
+      --pace-gold: #f0bc5c;
+      --shadow-soft: 0 12px 28px -10px rgba(0, 0, 0, 0.45);
+    }
+  }
+  :root[data-theme="dark"] {
+    --canvas: #1c1410;
+    --surface: #2a2019;
+    --surface-2: #241b15;
+    --ink: #f6ede2;
+    --slate: #b3a494;
+    --hairline: #3c2f24;
+    --action-primary: #ff7a52;
+    --pace-gold: #f0bc5c;
+    --shadow-soft: 0 12px 28px -10px rgba(0, 0, 0, 0.45);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--canvas);
+  }
+
+  body {
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding: 22px;
+    overflow-y: auto;
+  }
+
+  code {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.88em;
+    background: var(--surface-2);
+    padding: 1px 5px;
+    border-radius: 5px;
+  }
+
+  .wrap {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  .head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+  .head h1 {
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 600;
+    margin: 0;
+  }
+  .head .tag {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--slate);
+    background: var(--surface-2);
+    border: 1px solid var(--hairline);
+    padding: 2px 8px;
+    border-radius: var(--r-pill);
+    white-space: nowrap;
+  }
+  .sub {
+    font-size: 12.5px;
+    color: var(--slate);
+    margin: 6px 0 18px;
+    max-width: 56ch;
+    line-height: 1.6;
+  }
+
+  .card {
+    background: var(--surface);
+    border-radius: var(--r-xl);
+    box-shadow: var(--shadow-soft);
+    overflow: hidden;
+  }
+
+  .m-row {
+    display: grid;
+    grid-template-columns: 108px 1fr;
+    gap: 4px 16px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--hairline);
+    align-items: start;
+  }
+  .m-row:last-child { border-bottom: none; }
+
+  .m-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .m-timing {
+    grid-column: 2;
+    font-variant-numeric: tabular-nums;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--action-primary);
+  }
+  .m-desc {
+    grid-column: 1 / -1;
+    font-size: 12px;
+    color: var(--slate);
+    line-height: 1.55;
+    margin-top: 2px;
+  }
+
+  .preview {
+    grid-column: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* mini live previews */
+  .mini-btn {
+    width: 34px; height: 34px; border-radius: 999px;
+    background: var(--action-primary);
+    cursor: pointer; border: none;
+    transition: transform 0.12s ease;
+  }
+  .mini-btn:active { transform: scale(0.88); }
+
+  .mini-sheet-frame {
+    width: 52px; height: 34px; border-radius: 8px;
+    background: var(--surface-2); border: 1px solid var(--hairline);
+    position: relative; overflow: hidden; cursor: pointer;
+  }
+  .mini-sheet-panel {
+    position: absolute; inset: auto 0 0 0; height: 60%;
+    background: var(--action-primary); border-radius: 4px 4px 0 0;
+    transform: translateY(100%);
+    transition: transform 0.28s cubic-bezier(.22,1,.36,1);
+  }
+  .mini-sheet-frame.open .mini-sheet-panel { transform: translateY(0); }
+
+  .mini-fade {
+    width: 52px; height: 34px; border-radius: 8px;
+    background: var(--surface-2); border: 1px solid var(--hairline);
+    position: relative; overflow: hidden; cursor: pointer;
+  }
+  .mini-fade span {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700; color: white; background: var(--action-primary);
+    opacity: 0; transition: opacity 0.15s ease;
+  }
+  .mini-fade.on span { opacity: 1; }
+
+  .mini-spark {
+    width: 34px; height: 34px; border-radius: 999px;
+    background: var(--surface-2); border: 1px solid var(--hairline);
+    position: relative; cursor: pointer;
+  }
+  .mini-spark i {
+    position: absolute; top: 50%; left: 50%; width: 4px; height: 4px;
+    margin: -2px 0 0 -2px; border-radius: 999px; background: var(--action-primary);
+    opacity: 0;
+  }
+  .mini-spark.fire i { animation: spark 0.45s cubic-bezier(.22,1,.36,1) forwards; }
+  @keyframes spark {
+    0% { opacity: 1; transform: translate(0,0) scale(0.4); }
+    100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1); }
+  }
+
+  .mini-dial {
+    width: 34px; height: 34px; border-radius: 999px;
+    border: 3px solid var(--hairline);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; position: relative;
+  }
+  .mini-dial .fill {
+    position: absolute; inset: -3px; border-radius: 999px;
+    border: 3px solid var(--action-primary);
+    clip-path: inset(0 0 0 0);
+    opacity: 0; transform: scale(0.6);
+    transition: opacity 0.3s ease, transform 0.3s cubic-bezier(.22,1,.36,1);
+  }
+  .mini-dial.done .fill { opacity: 1; transform: scale(1); }
+  .mini-dial .chk { font-size: 12px; color: var(--action-primary); opacity: 0; transition: opacity 0.2s ease 0.15s; }
+  .mini-dial.done .chk { opacity: 1; }
+
+  .hint {
+    grid-column: 1;
+    font-size: 9.5px;
+    color: var(--slate);
+    text-align: center;
+    margin-top: 5px;
+  }
+
+  .note {
+    font-size: 11.5px;
+    color: var(--slate);
+    background: var(--surface-2);
+    border-left: 2px solid var(--action-primary);
+    padding: 10px 14px;
+    border-radius: 0 8px 8px 0;
+    margin-top: 16px;
+    line-height: 1.6;
+  }
+  .note b { color: var(--ink); }
+
+  @media (max-width: 420px) {
+    .m-row { grid-template-columns: 1fr; }
+    .m-timing { grid-column: 1; }
+    .preview { justify-content: flex-start; margin-top: 6px; }
+    .hint { text-align: left; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head">
+      <h1>Motion</h1>
+      <span class="tag">Runway · tokens</span>
+    </div>
+    <p class="sub">The five interaction patterns reused across Runway's sheets, routes, and taps — tap any preview to replay it.</p>
+
+    <div class="card">
+      <div class="m-row">
+        <div class="preview"><button class="mini-btn" id="btnTap" aria-label="Replay tap scale"></button></div>
+        <div>
+          <div class="m-name">Tap scale</div>
+          <div class="m-timing">whileTap 0.96–0.97</div>
+        </div>
+        <div class="m-desc">Buttons and chips compress slightly on press for tactile feedback.</div>
+      </div>
+
+      <div class="m-row">
+        <div class="preview"><div class="mini-sheet-frame" id="sheetDemo" role="button" tabindex="0" aria-label="Replay sheet slide"><div class="mini-sheet-panel"></div></div></div>
+        <div>
+          <div class="m-name">Sheet slide</div>
+          <div class="m-timing">280ms · cubic-bezier(.22,1,.36,1)</div>
+        </div>
+        <div class="m-desc">Bottom sheets and drawers slide 100%→0 with a backdrop fade — the shared convention for any new sheet.</div>
+      </div>
+
+      <div class="m-row">
+        <div class="preview"><div class="mini-fade" id="fadeDemo" role="button" tabindex="0" aria-label="Replay page fade"><span>IN</span></div></div>
+        <div>
+          <div class="m-name">Page fade</div>
+          <div class="m-timing">150ms · ease</div>
+        </div>
+        <div class="m-desc">Route transitions, opacity only, wrapped in <code>AnimatePresence mode="wait"</code>.</div>
+      </div>
+
+      <div class="m-row">
+        <div class="preview">
+          <div class="mini-spark" id="sparkDemo" role="button" tabindex="0" aria-label="Replay spark burst">
+            <i></i><i></i><i></i><i></i><i></i><i></i>
+          </div>
+        </div>
+        <div>
+          <div class="m-name">Spark burst</div>
+          <div class="m-timing">450ms · cubic-bezier(.22,1,.36,1)</div>
+        </div>
+        <div class="m-desc">Six-point radial burst behind a tapped nav icon, remounted per tap via a changing <code>key</code>.</div>
+      </div>
+
+      <div class="m-row">
+        <div class="preview"><div class="mini-dial" id="dialDemo" role="button" tabindex="0" aria-label="Replay dial complete"><span class="fill"></span><span class="chk">✓</span></div></div>
+        <div>
+          <div class="m-name">Dial modes</div>
+          <div class="m-timing">state machine</div>
+        </div>
+        <div class="m-desc"><code>idle → sunrise → dropping → complete</code>, chained by parent callbacks rather than internal timers.</div>
+      </div>
+    </div>
+
+    <div class="note"><b>Known pitfall:</b> never combine a static transform (e.g. centering translate) with an animated one on the same element — the animation library's inline <code>transform</code> silently clobbers the static one on first run. Put the static transform on a wrapper, the animated one on the inner element.</div>
+  </div>
+
+<script>
+  (function () {
+    var btn = document.getElementById("btnTap");
+    btn.addEventListener("click", function () {
+      btn.style.transition = "none";
+      btn.style.transform = "scale(0.88)";
+      requestAnimationFrame(function () {
+        btn.style.transition = "transform 0.12s ease";
+        btn.style.transform = "scale(1)";
+      });
+    });
+
+    var sheet = document.getElementById("sheetDemo");
+    sheet.addEventListener("click", function () {
+      sheet.classList.remove("open");
+      void sheet.offsetWidth;
+      sheet.classList.add("open");
+    });
+
+    var fade = document.getElementById("fadeDemo");
+    fade.addEventListener("click", function () {
+      fade.classList.remove("on");
+      void fade.offsetWidth;
+      fade.classList.add("on");
+      setTimeout(function () { fade.classList.remove("on"); }, 900);
+    });
+
+    var spark = document.getElementById("sparkDemo");
+    var dots = spark.querySelectorAll("i");
+    spark.addEventListener("click", function () {
+      spark.classList.remove("fire");
+      void spark.offsetWidth;
+      dots.forEach(function (d, i) {
+        var angle = (i / dots.length) * Math.PI * 2;
+        d.style.setProperty("--dx", (Math.cos(angle) * 14) + "px");
+        d.style.setProperty("--dy", (Math.sin(angle) * 14) + "px");
+      });
+      spark.classList.add("fire");
+    });
+
+    var dial = document.getElementById("dialDemo");
+    dial.addEventListener("click", function () {
+      dial.classList.toggle("done");
+    });
+
+    [sheet, fade, spark, dial].forEach(function (el) {
+      el.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); el.click(); }
+      });
+    });
+  })();
+</script>
+</body>
+</html>
