@@ -4,8 +4,6 @@
 
 The visual language behind Runway, a mobile-first trip-budget-*pacing* app. Warm canvas neutrals, one coral action color, and a dedicated teal/gold/berry pace ramp that stays deliberately separate from the brand color — so "on pace" never gets confused with "the button you tap."
 
-Every token below is pulled directly from `src/styles/globals.css`, `src/theme/tokens.ts`, and `tailwind.config.js`. This file mirrors [`full-design-system-embed.html`](./full-design-system-embed.html) (the interactive Framer embed with a live light/dark toggle) so the same reference is browsable straight from GitHub.
-
 **Jump to:** [01 Color](#01--color) · [02 Typography](#02--typography) · [03 Spacing & radius](#03--spacing--radius) · [04 Elevation](#04--elevation) · [05 Components](#05--components)
 
 ---
